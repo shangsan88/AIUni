@@ -192,6 +192,8 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
   const setModel = useSettingsStore((state) => state.setModel);
   const setProviderConfig = useSettingsStore((state) => state.setProviderConfig);
   const setProvidersConfig = useSettingsStore((state) => state.setProvidersConfig);
+  const setTTSProvider = useSettingsStore((state) => state.setTTSProvider);
+  const setASRProvider = useSettingsStore((state) => state.setASRProvider);
 
   // Navigation
   const [activeSection, setActiveSection] = useState<SettingsSection>('providers');
@@ -209,10 +211,17 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
   // Navigate to initialSection when dialog opens
   useEffect(() => {
     if (open && initialSection) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync section from prop when dialog opens
       setActiveSection(initialSection);
     }
   }, [open, initialSection]);
+
+  useEffect(() => {
+    setSelectedTTSProviderId(ttsProviderId);
+  }, [ttsProviderId]);
+
+  useEffect(() => {
+    setSelectedASRProviderId(asrProviderId);
+  }, [asrProviderId]);
 
   // Model editing state
   const [editingModel, setEditingModel] = useState<EditingModel | null>(null);
@@ -286,6 +295,16 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
 
   const handleProviderSelect = (pid: ProviderId) => {
     setSelectedProviderId(pid);
+  };
+
+  const handleTTSProviderSelect = (providerId: TTSProviderId) => {
+    setSelectedTTSProviderId(providerId);
+    setTTSProvider(providerId);
+  };
+
+  const handleASRProviderSelect = (providerId: ASRProviderId) => {
+    setSelectedASRProviderId(providerId);
+    setASRProvider(providerId);
   };
 
   const handleProviderConfigChange = (
@@ -888,7 +907,7 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
                 }))}
                 configs={ttsProvidersConfig}
                 selectedId={selectedTTSProviderId}
-                onSelect={setSelectedTTSProviderId}
+                onSelect={handleTTSProviderSelect}
                 width={providerListWidth}
                 t={t}
               />
@@ -911,7 +930,7 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
                 }))}
                 configs={asrProvidersConfig}
                 selectedId={selectedASRProviderId}
-                onSelect={setSelectedASRProviderId}
+                onSelect={handleASRProviderSelect}
                 width={providerListWidth}
                 t={t}
               />
