@@ -14,6 +14,18 @@ export const WEB_SEARCH_PROVIDERS: Record<WebSearchProviderId, WebSearchProvider
     requiresApiKey: true,
     defaultBaseUrl: 'https://api.tavily.com',
   },
+  brave: {
+    id: 'brave',
+    name: 'Brave Search',
+    requiresApiKey: false,
+    defaultBaseUrl: 'https://search.brave.com',
+  },
+  baidu: {
+    id: 'baidu',
+    name: 'Baidu AI Search',
+    requiresApiKey: true,
+    defaultBaseUrl: 'https://qianfan.baidubce.com',
+  },
 };
 
 /**

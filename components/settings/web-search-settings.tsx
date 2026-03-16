@@ -39,7 +39,14 @@ export function WebSearchSettings({ selectedProviderId }: WebSearchSettingsProps
         </div>
       )}
 
-      {/* API Key + Base URL Configuration */}
+      {/* No API key needed notice (e.g., Brave Search) */}
+      {!provider.requiresApiKey && !isServerConfigured && (
+        <div className="rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/30 p-3 text-sm text-green-700 dark:text-green-300">
+          {t('settings.webSearchNoApiKeyNeeded')}
+        </div>
+      )}
+
+      {/* API Key + Base URL Configuration — only show when provider requires API key */}
       {(provider.requiresApiKey || isServerConfigured) && (
         <>
           <div className="grid grid-cols-2 gap-4">
@@ -73,7 +80,7 @@ export function WebSearchSettings({ selectedProviderId }: WebSearchSettingsProps
             <div className="space-y-2">
               <Label className="text-sm">{t('settings.webSearchBaseUrl')}</Label>
               <Input
-                placeholder={provider.defaultBaseUrl || 'https://api.tavily.com'}
+                placeholder={provider.defaultBaseUrl || ''}
                 value={webSearchProvidersConfig[selectedProviderId]?.baseUrl || ''}
                 onChange={(e) =>
                   setWebSearchProviderConfig(selectedProviderId, {

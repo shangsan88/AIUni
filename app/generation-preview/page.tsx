@@ -312,6 +312,7 @@ function GenerationPreviewContent() {
           body: JSON.stringify({
             query: currentSession.requirements.requirement,
             apiKey: wsApiKey || undefined,
+            provider: wsSettings.webSearchProviderId,
           }),
           signal,
         });
