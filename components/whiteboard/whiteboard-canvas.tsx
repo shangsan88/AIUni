@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStageStore } from '@/lib/store';
 import { useCanvasStore } from '@/lib/store/canvas';
@@ -74,14 +74,22 @@ function AnimatedElement({
 }
 
 /**
- * Whiteboard canvas
+ * Whiteboard canvas with pan & zoom support.
+ *
+ * Features:
+ * - Responsive scaling to fill the container
+ * - Auto-fit: when elements overflow the canvas, content is scaled & centered
+ *   so nothing is clipped
+ * - Drag-to-pan: hold mouse and drag to pan around the whiteboard
+ * - Scroll-to-zoom: use the scroll wheel to zoom in/out (centered on cursor)
+ * - Double-click to reset view to auto-fit
  */
 export function WhiteboardCanvas() {
   const { t } = useI18n();
   const stage = useStageStore.use.stage();
   const isClearing = useCanvasStore.use.whiteboardClearing();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
+  const [containerScale, setContainerScale] = useState(1);
 
   // Get whiteboard elements
   const whiteboard = stage?.whiteboard?.[0];
@@ -91,24 +99,152 @@ export function WhiteboardCanvas() {
   const canvasWidth = 1000;
   const canvasHeight = 562.5;
 
-  // Responsive scaling: scale canvas proportionally to fill container
-  const updateScale = useCallback(() => {
+  // ==================== Responsive container scaling ====================
+  const updateContainerScale = useCallback(() => {
     const container = containerRef.current;
     if (!container) return;
     const { clientWidth, clientHeight } = container;
     const scaleX = clientWidth / canvasWidth;
     const scaleY = clientHeight / canvasHeight;
-    setScale(Math.min(scaleX, scaleY));
+    setContainerScale(Math.min(scaleX, scaleY));
   }, [canvasWidth, canvasHeight]);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    const observer = new ResizeObserver(updateScale);
+    const observer = new ResizeObserver(updateContainerScale);
     observer.observe(container);
-    updateScale();
+    updateContainerScale();
     return () => observer.disconnect();
-  }, [updateScale]);
+  }, [updateContainerScale]);
+
+  // ==================== Auto-fit: compute initial transform ====================
+  const PADDING = 24; // px padding inside the canvas edges
+
+  const autoFitTransform = useMemo(() => {
+    if (elements.length === 0) return { scale: 1, tx: 0, ty: 0 };
+
+    // Compute bounding box of all elements
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const el of elements) {
+      const left = el.left ?? 0;
+      const top = el.top ?? 0;
+      const width = el.width ?? 0;
+      const height = el.height ?? 0;
+      minX = Math.min(minX, left);
+      minY = Math.min(minY, top);
+      maxX = Math.max(maxX, left + width);
+      maxY = Math.max(maxY, top + height);
+    }
+
+    const contentWidth = maxX - minX;
+    const contentHeight = maxY - minY;
+
+    // Only apply fit when content actually overflows the canvas
+    const overflowsX = minX < 0 || maxX > canvasWidth;
+    const overflowsY = minY < 0 || maxY > canvasHeight;
+    if (!overflowsX && !overflowsY) return { scale: 1, tx: 0, ty: 0 };
+
+    // Scale down to fit all content within the canvas (with padding)
+    const availW = canvasWidth - PADDING * 2;
+    const availH = canvasHeight - PADDING * 2;
+    const fitScale = Math.min(1, availW / contentWidth, availH / contentHeight);
+
+    // Center the content
+    const scaledW = contentWidth * fitScale;
+    const scaledH = contentHeight * fitScale;
+    const tx = (canvasWidth - scaledW) / 2 - minX * fitScale;
+    const ty = (canvasHeight - scaledH) / 2 - minY * fitScale;
+
+    return { scale: fitScale, tx, ty };
+  }, [elements, canvasWidth, canvasHeight]);
+
+  // ==================== Pan & Zoom state ====================
+  const [viewZoom, setViewZoom] = useState(1); // user zoom (relative to auto-fit)
+  const [panX, setPanX] = useState(0); // user pan offset in canvas-space px
+  const [panY, setPanY] = useState(0);
+  const isPanningRef = useRef(false);
+  const panStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+  const [isResetting, setIsResetting] = useState(false);
+
+  // Reset view only when whiteboard content actually changes (not on every re-render).
+  // Use a stable string key from element IDs instead of object reference.
+  const elementsKey = elements.map((e) => e.id).join(',');
+  useEffect(() => {
+    setViewZoom(1);
+    setPanX(0);
+    setPanY(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [elementsKey]);
+
+  // ---- Drag-to-pan handlers ----
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      // Only pan with left mouse button or single touch
+      if (e.button !== 0) return;
+      e.preventDefault(); // prevent text selection
+      isPanningRef.current = true;
+      panStartRef.current = { x: e.clientX, y: e.clientY, panX, panY };
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    },
+    [panX, panY],
+  );
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!isPanningRef.current) return;
+      const dx = e.clientX - panStartRef.current.x;
+      const dy = e.clientY - panStartRef.current.y;
+      // Divide by containerScale so pan distance is consistent regardless of container size
+      const effectiveScale = containerScale * autoFitTransform.scale * viewZoom;
+      setPanX(panStartRef.current.panX + dx / effectiveScale);
+      setPanY(panStartRef.current.panY + dy / effectiveScale);
+    },
+    [containerScale, autoFitTransform.scale, viewZoom],
+  );
+
+  const handlePointerUp = useCallback(() => {
+    isPanningRef.current = false;
+  }, []);
+
+  // ---- Scroll-to-zoom: must use native listener for { passive: false } ----
+  const canvasRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+      setViewZoom((prev) => Math.min(5, Math.max(0.2, prev * zoomFactor)));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
+  // ---- Double-click to reset (with smooth animation) ----
+  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault(); // prevent text selection
+    setIsResetting(true);
+    setViewZoom(1);
+    setPanX(0);
+    setPanY(0);
+    setTimeout(() => setIsResetting(false), 250);
+  }, []);
+
+  // ==================== Computed content transform ====================
+  // Combines auto-fit + user pan/zoom into a single CSS transform
+  const contentTransform = useMemo(() => {
+    const s = autoFitTransform.scale * viewZoom;
+    const tx = autoFitTransform.tx + panX;
+    const ty = autoFitTransform.ty + panY;
+    return `translate(${tx}px, ${ty}px) scale(${s})`;
+  }, [autoFitTransform, viewZoom, panX, panY]);
+
+  // Whether the user has modified the view (show reset hint)
+  const isViewModified = viewZoom !== 1 || panX !== 0 || panY !== 0;
+  // Whether content overflows (auto-fit is active)
+  const hasOverflow = autoFitTransform.scale < 1;
 
   return (
     <div
@@ -116,15 +252,22 @@ export function WhiteboardCanvas() {
       className="w-full h-full flex items-center justify-center overflow-hidden"
     >
       {/* Layout wrapper: its size matches the scaled visual size so flex centering works correctly */}
-      <div style={{ width: canvasWidth * scale, height: canvasHeight * scale }}>
+      <div style={{ width: canvasWidth * containerScale, height: canvasHeight * containerScale }}>
         <div
-          className="relative bg-white shadow-2xl rounded-lg overflow-hidden"
+          ref={canvasRef}
+          className="relative bg-white shadow-2xl rounded-lg overflow-hidden select-none"
           style={{
             width: canvasWidth,
             height: canvasHeight,
-            transform: `scale(${scale})`,
+            transform: `scale(${containerScale})`,
             transformOrigin: 'top left',
+            cursor: isPanningRef.current ? 'grabbing' : (hasOverflow || isViewModified ? 'grab' : undefined),
           }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onDoubleClick={handleDoubleClick}
         >
           {/* Placeholder when empty and not mid-clear */}
           <AnimatePresence>
@@ -147,17 +290,48 @@ export function WhiteboardCanvas() {
             )}
           </AnimatePresence>
 
-          {/* Elements — always rendered so AnimatePresence can track exits */}
-          <AnimatePresence mode="popLayout">
-            {elements.map((element, index) => (
-              <AnimatedElement
-                key={element.id}
-                element={element}
-                index={index}
-                isClearing={isClearing}
-                totalElements={elements.length}
-              />
-            ))}
+          {/* Content layer — auto-fit + user pan/zoom applied */}
+          <div
+            className="absolute inset-0"
+            style={{
+              transform: contentTransform,
+              transformOrigin: '0 0',
+              transition: isResetting ? 'transform 0.25s ease-out' : undefined,
+            }}
+          >
+            {/* Elements — always rendered so AnimatePresence can track exits */}
+            <AnimatePresence mode="popLayout">
+              {elements.map((element, index) => (
+                <AnimatedElement
+                  key={element.id}
+                  element={element}
+                  index={index}
+                  isClearing={isClearing}
+                  totalElements={elements.length}
+                />
+              ))}
+            </AnimatePresence>
+          </div>
+
+          {/* Reset hint — shown when view is modified */}
+          <AnimatePresence>
+            {isViewModified && (
+              <motion.button
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 0.7 }}
+                exit={{ opacity: 0 }}
+                whileHover={{ opacity: 1 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDoubleClick();
+                }}
+                className="absolute bottom-3 right-3 z-50 px-2.5 py-1 rounded-md
+                  bg-black/60 text-white text-xs backdrop-blur-sm
+                  hover:bg-black/80 transition-colors cursor-pointer select-none"
+              >
+                {t('whiteboard.resetView') ?? 'Reset View'}
+              </motion.button>
+            )}
           </AnimatePresence>
         </div>
       </div>

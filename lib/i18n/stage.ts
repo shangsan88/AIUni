@@ -17,6 +17,7 @@ export const stageZhCN = {
     readyHint: 'AI 添加元素后将在此显示',
     clearSuccess: '白板已清空',
     clearError: '清空白板失败：',
+    resetView: '重置视图',
   },
   quiz: {
     title: '随堂测验',
@@ -153,6 +154,7 @@ export const stageEnUS = {
     readyHint: 'Elements will appear here when added by AI',
     clearSuccess: 'Whiteboard cleared successfully',
     clearError: 'Failed to clear whiteboard: ',
+    resetView: 'Reset View',
   },
   quiz: {
     title: 'Quiz',
