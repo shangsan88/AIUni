@@ -23,10 +23,12 @@ export async function POST(req: Request) {
       query,
       apiKey: clientApiKey,
       provider = 'tavily',
+      baiduSubSources,
     } = body as {
       query?: string;
       apiKey?: string;
       provider?: WebSearchProviderId;
+      baiduSubSources?: { webSearch?: boolean; baike?: boolean; scholar?: boolean };
     };
 
     if (!query || !query.trim()) {
@@ -56,7 +58,7 @@ export async function POST(req: Request) {
         result = await searchWithBrave({ query: query.trim() });
         break;
       case 'baidu':
-        result = await searchWithBaidu({ query: query.trim(), apiKey });
+        result = await searchWithBaidu({ query: query.trim(), apiKey, subSources: baiduSubSources });
         break;
       case 'tavily':
       default:

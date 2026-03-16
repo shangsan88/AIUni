@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useSettingsStore } from '@/lib/store/settings';
-import { WEB_SEARCH_PROVIDERS } from '@/lib/web-search/constants';
-import type { WebSearchProviderId } from '@/lib/web-search/types';
+import { WEB_SEARCH_PROVIDERS, BAIDU_SUB_SOURCES } from '@/lib/web-search/constants';
+import type { WebSearchProviderId, BaiduSubSources } from '@/lib/web-search/types';
 import { Eye, EyeOff } from 'lucide-react';
 
 interface WebSearchSettingsProps {
@@ -14,11 +15,13 @@ interface WebSearchSettingsProps {
 }
 
 export function WebSearchSettings({ selectedProviderId }: WebSearchSettingsProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [showApiKey, setShowApiKey] = useState(false);
 
   const webSearchProvidersConfig = useSettingsStore((state) => state.webSearchProvidersConfig);
   const setWebSearchProviderConfig = useSettingsStore((state) => state.setWebSearchProviderConfig);
+  const baiduSubSources = useSettingsStore((state) => state.baiduSubSources);
+  const setBaiduSubSources = useSettingsStore((state) => state.setBaiduSubSources);
 
   const provider = WEB_SEARCH_PROVIDERS[selectedProviderId];
   const isServerConfigured = !!webSearchProvidersConfig[selectedProviderId]?.isServerConfigured;
@@ -46,8 +49,7 @@ export function WebSearchSettings({ selectedProviderId }: WebSearchSettingsProps
         </div>
       )}
 
-      {/* API Key + Base URL Configuration — only show when provider requires API key */}
-      {(provider.requiresApiKey || isServerConfigured) && (
+      {/* API Key + Base URL Configuration — always show, but with different hints */}
         <>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -107,6 +109,42 @@ export function WebSearchSettings({ selectedProviderId }: WebSearchSettingsProps
             );
           })()}
         </>
+
+      {/* ── Baidu Sub-Source Toggles ── */}
+      {selectedProviderId === 'baidu' && (
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">
+            {locale === 'zh-CN' ? '搜索源' : 'Search Sources'}
+          </Label>
+          <div className="space-y-2">
+            {(Object.entries(BAIDU_SUB_SOURCES) as [keyof BaiduSubSources, (typeof BAIDU_SUB_SOURCES)[keyof typeof BAIDU_SUB_SOURCES]][]).map(
+              ([key, meta]) => {
+                const enabled = baiduSubSources?.[key] ?? true;
+                return (
+                  <div key={key} className="flex items-center gap-2.5">
+                    <span
+                      className={`flex-1 text-sm font-medium transition-colors ${
+                        !enabled ? 'text-muted-foreground' : ''
+                      }`}
+                    >
+                      {meta.label[locale]}
+                    </span>
+                    <Switch
+                      checked={enabled}
+                      onCheckedChange={(checked) => setBaiduSubSources({ [key]: checked })}
+                      className="scale-[0.85] origin-right"
+                    />
+                  </div>
+                );
+              },
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {locale === 'zh-CN'
+              ? '选择百度搜索时使用的数据源，至少启用一个'
+              : 'Choose which Baidu data sources to query. Enable at least one.'}
+          </p>
+        </div>
       )}
     </div>
   );

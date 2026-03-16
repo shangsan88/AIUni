@@ -190,16 +190,22 @@ export async function searchWithBaidu(params: {
   query: string;
   apiKey: string;
   maxResults?: number;
+  subSources?: { webSearch?: boolean; baike?: boolean; scholar?: boolean };
 }): Promise<WebSearchResult> {
   const { query, apiKey, maxResults = 10 } = params;
+  const sub = {
+    webSearch: params.subSources?.webSearch ?? true,
+    baike: params.subSources?.baike ?? true,
+    scholar: params.subSources?.scholar ?? true,
+  };
 
   const startTime = Date.now();
 
-  // Fire all three sources in parallel
+  // Fire enabled sources in parallel
   const [webResults, baikeResults, scholarResults] = await Promise.all([
-    fetchWebSearch(query, apiKey, maxResults),
-    fetchBaike(query, apiKey),
-    fetchScholar(query, apiKey, 3), // Limit academic results to top 3
+    sub.webSearch ? fetchWebSearch(query, apiKey, maxResults) : Promise.resolve([]),
+    sub.baike ? fetchBaike(query, apiKey) : Promise.resolve([]),
+    sub.scholar ? fetchScholar(query, apiKey, 3) : Promise.resolve([]),
   ]);
 
   const responseTime = (Date.now() - startTime) / 1000;

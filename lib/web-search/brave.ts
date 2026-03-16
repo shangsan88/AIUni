@@ -36,7 +36,9 @@ function parseBraveResults(html: string, maxResults: number): WebSearchSource[] 
   const results: WebSearchSource[] = [];
 
   // Match each search result snippet block with data-type="web"
-  const snippetRegex = /<div[^>]*class="snippet"[^>]*data-type="web"[^>]*>([\s\S]*?)(?=<div[^>]*class="snippet"|<footer|$)/gi;
+  // Actual HTML: <div class="snippet  svelte-xxx" data-pos="0" data-type="web" ...>
+  const snippetRegex =
+    /<div[^>]*class="snippet[^"]*"[^>]*data-type="web"[^>]*>([\s\S]*?)(?=<div[^>]*class="snippet[^"]*"[^>]*data-type="web"|<footer|$)/gi;
 
   let snippetMatch;
   while ((snippetMatch = snippetRegex.exec(html)) !== null && results.length < maxResults) {
@@ -47,17 +49,28 @@ function parseBraveResults(html: string, maxResults: number): WebSearchSource[] 
     if (!linkMatch || linkMatch[1].includes('brave.com')) continue;
     const url = linkMatch[1];
 
-    // Extract title
-    const titleMatch = block.match(/<span[^>]*class="(?:[^"]*\s)?title(?:\s[^"]*)?"[^>]*>([^<]+)<\/span>/);
+    // Extract title — actual class: "title search-snippet-title line-clamp-1 svelte-xxx"
+    const titleMatch = block.match(
+      /<span[^>]*class="[^"]*search-snippet-title[^"]*"[^>]*>([^<]+)<\/span>/,
+    );
     const title = titleMatch ? titleMatch[1].trim() : '';
     if (!title) continue;
 
     // Extract snippet/description content
-    const descMatch = block.match(/<p[^>]*class="(?:[^"]*\s)?snippet-description(?:\s[^"]*)?"[^>]*>([\s\S]*?)<\/p>/);
+    // Try generic-snippet div first (current Brave structure),
+    // then fall back to snippet-description p tag (legacy)
     let content = '';
-    if (descMatch) {
-      content = descMatch[1].replace(/<[^>]+>/g, '').trim();
-      // Remove date prefix if present (e.g., "Jan 1, 2026 - ")
+    const genericMatch = block.match(
+      /<div[^>]*class="[^"]*generic-snippet[^"]*"[^>]*>([\s\S]*?)<\/div>/,
+    );
+    const descMatch = block.match(
+      /<p[^>]*class="[^"]*snippet-description[^"]*"[^>]*>([\s\S]*?)<\/p>/,
+    );
+    const rawDesc = genericMatch?.[1] || descMatch?.[1] || '';
+    if (rawDesc) {
+      content = rawDesc.replace(/<[^>]+>/g, '').trim();
+      // Remove date prefix if present (e.g., "2 days ago -" or "Jan 1, 2026 - ")
+      content = content.replace(/^\d+ \w+ ago\s*[-—]\s*/, '');
       content = content.replace(/^[A-Z][a-z]+ \d+, \d{4}\s*[-—]\s*/, '');
     }
 

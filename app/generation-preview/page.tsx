@@ -313,6 +313,10 @@ function GenerationPreviewContent() {
             query: currentSession.requirements.requirement,
             apiKey: wsApiKey || undefined,
             provider: wsSettings.webSearchProviderId,
+            baiduSubSources:
+              wsSettings.webSearchProviderId === 'baidu'
+                ? wsSettings.baiduSubSources
+                : undefined,
           }),
           signal,
         });
