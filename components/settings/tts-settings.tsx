@@ -31,9 +31,7 @@ export function TTSSettings({ selectedProviderId }: TTSSettingsProps) {
 
   // Use the store voice only if it belongs to the selected provider; otherwise use the provider's default voice
   const effectiveVoice =
-    selectedProviderId === ttsProviderId
-      ? ttsVoice
-      : ttsProvider.voices[0]?.id || 'default';
+    selectedProviderId === ttsProviderId ? ttsVoice : ttsProvider.voices[0]?.id || 'default';
   const isServerConfigured = !!ttsProvidersConfig[selectedProviderId]?.isServerConfigured;
 
   const [showApiKey, setShowApiKey] = useState(false);
@@ -72,7 +70,9 @@ export function TTSSettings({ selectedProviderId }: TTSSettingsProps) {
         const utterance = new SpeechSynthesisUtterance(testText);
         utterance.rate = ttsSpeed;
         const voices = window.speechSynthesis.getVoices();
-        const selectedVoice = voices.find((v) => v.name === effectiveVoice || v.lang === effectiveVoice);
+        const selectedVoice = voices.find(
+          (v) => v.name === effectiveVoice || v.lang === effectiveVoice,
+        );
         if (selectedVoice) utterance.voice = selectedVoice;
         utterance.onend = () => {
           setTestStatus('success');
