@@ -12,10 +12,12 @@
   README.md
   next.config.ts
   .env.example
+  SKILL.md
   ai_repo_brain.py
   docker-compose.yml
   components.json
   vercel.json
+  next-env.d.ts
   .dockerignore
   postcss.config.mjs
   .prettierrc
@@ -27,6 +29,8 @@
   eslint.config.mjs
   LICENSE
   pnpm-lock.yaml
+  README-zh.md
+  ConsAuditReport.docx
 .serena/
     project.yml
     project.local.yml
@@ -48,6 +52,17 @@ memories/
       project_overview.md
 community/
     feishu.md
+infra/
+    docker-compose.infra.yml
+    index.ts
+    otel-collector-config.yml
+    prometheus.yml
+migrations/
+      init.sql
+agents/
+    templates.ts
+    index.ts
+    types.ts
 configs/
     latex.ts
     element.ts
@@ -70,6 +85,15 @@ app/
     apple-icon.png
 classroom/
 [id]/
+        page.tsx
+dashboard/
+      page.tsx
+      layout.tsx
+teacher/
+        page.tsx
+student/
+        page.tsx
+admin/
         page.tsx
 generation-preview/
       page.tsx
@@ -136,6 +160,10 @@ ISSUE_TEMPLATE/
       feature_request.yml
       config.yml
       bug_report.yml
+scenes/
+    index.ts
+    registry.ts
+    types.ts
 skills/
 openmaic/
       SKILL.md
@@ -149,6 +177,7 @@ components/
     server-providers-init.tsx
     header.tsx
     user-profile.tsx
+    platform-assistant.tsx
     stage.tsx
 ui/
       progress.tsx
@@ -464,6 +493,7 @@ utils/
       stage-storage.ts
       database.ts
 i18n/
+      platform.ts
       generation.ts
       index.ts
       types.ts
@@ -535,6 +565,7 @@ html-parser/
 ai/
       providers.ts
       thinking-context.ts
+      model-router.ts
       llm.ts
 storage/
       index.ts
@@ -615,6 +646,12 @@ api/
       stage-api-mode.ts
       stage-api-scene.ts
       stage-api-canvas.ts
+courses/
+    index.ts
+    types.ts
+knowledge/
+    index.ts
+    types.ts
 public/
     logo-horizontal.png
 avatars/
@@ -757,6 +794,8 @@ app/api/generate/image/route.ts
 
 next.config.ts
   -> next
+agents/templates.ts
+  -> ./types
 configs/animation.ts
   -> @/lib/types/slides
 configs/theme.ts
@@ -801,6 +840,11 @@ app/layout.tsx
   -> @/lib/hooks/use-i18n
   -> @/components/ui/sonner
   -> @/components/server-providers-init
+scenes/registry.ts
+  -> ./types
+  -> @/courses/types
+scenes/types.ts
+  -> @/courses/types
 components/server-providers-init.tsx
   -> react
   -> @/lib/store/settings
@@ -825,6 +869,8 @@ components/user-profile.tsx
   -> @/lib/hooks/use-i18n
   -> sonner
   -> @/lib/store/user-profile
+components/platform-assistant.tsx
+  -> react
 components/stage.tsx
   -> react
   -> @/lib/store
@@ -846,6 +892,11 @@ components/stage.tsx
   -> @/lib/orchestration/registry/types
   -> lucide-react
   -> radix-ui
+app/dashboard/page.tsx
+  -> next/navigation
+app/dashboard/layout.tsx
+  -> next
+  -> next/link
 app/generation-preview/page.tsx
   -> react
   -> next/navigation
@@ -884,6 +935,10 @@ app/classroom/[id]/page.tsx
   -> @/lib/logger
   -> @/lib/contexts/media-stage-context
   -> @/lib/media/media-orchestrator
+app/dashboard/teacher/page.tsx
+  -> next/link
+app/dashboard/student/page.tsx
+  -> next/link
 app/generation-preview/components/visualizers.tsx
   -> react
   -> motion/react
@@ -2474,6 +2529,7 @@ lib/i18n/index.ts
   -> ./chat
   -> ./generation
   -> ./settings
+  -> ./platform
 lib/generation/json-repair.ts
   -> jsonrepair
   -> @/lib/logger
@@ -2566,6 +2622,9 @@ lib/ai/providers.ts
 lib/ai/thinking-context.ts
   -> node:async_hooks
   -> @/lib/types/provider
+lib/ai/model-router.ts
+  -> @/lib/types/provider
+  -> @/lib/logger
 lib/ai/llm.ts
   -> ai
   -> ai
@@ -3032,6 +3091,233 @@ def repo_map():
 def detect_frameworks():
 
     fw = []
+```
+
+### next-env.d.ts
+```
+/// <reference types="next" />
+/// <reference types="next/image-types/global" />
+import "./.next/types/routes.d.ts";
+
+// NOTE: This file should not be edited
+// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
+```
+
+### infra/index.ts
+```
+/**
+ * Infrastructure Configuration
+ *
+ * Database connection, Redis client, and observability setup.
+ * All infrastructure services are optional - the platform gracefully
+ * degrades to client-side storage when not available.
+ */
+
+/**
+ * Database configuration
+ */
+export interface DatabaseConfig {
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  password: string;
+  ssl: boolean;
+  maxConnections: number;
+}
+
+/**
+ * Redis configuration
+ */
+export interface RedisConfig {
+  host: string;
+  port: number;
+  password?: string;
+  db: number;
+  maxRetries: number;
+}
+
+/**
+ * Observability configuration
+ */
+export interface ObservabilityConfig {
+  enabled: boolean;
+  otlpEndpoint?: string;
+  serviceName: string;
+  environment: string;
+}
+
+/**
+ * Get database config from environment variables
+ */
+export function getDatabaseConfig(): DatabaseConfig {
+  return {
+    host: process.env.POSTGRES_HOST ?? 'localhost',
+    port: parseInt(process.env.POSTGRES_PORT ?? '5432', 10),
+    database: process.env.POSTGRES_DB ?? 'openmaic',
+    user: process.env.POSTGRES_USER ?? 'openmaic',
+    password: process.env.POSTGRES_PASSWORD ?? '',
+    ssl: process.env.POSTGRES_SSL === 'true',
+    maxConnections: parseInt(process.env.POSTGRES_MAX_CONNECTIONS ?? '20', 10),
+  };
+}
+
+/**
+ * Get Redis config from environment variables
+ */
+```
+
+### agents/templates.ts
+```
+/**
+ * Pre-built Agent Templates
+ *
+ * Ready-to-use agent configurations for common educational roles.
+ * These templates can be customized by teachers or used as-is.
+ */
+
+import type { AgentPrimitive, AgentRole } from './types';
+
+/**
+ * Create a new agent from a template with sensible defaults
+ */
+export function createAgentTemplate(
+  overrides: Partial<AgentPrimitive> & { name: string; role: AgentRole },
+): Omit<AgentPrimitive, 'id' | 'metadata'> {
+  return {
+    systemPrompt: '',
+    tools: [],
+    memory: {
+      shortTerm: { enabled: true, maxMessages: 50 },
+      longTerm: { enabled: false, storageType: 'local' },
+      vector: { enabled: false },
+      scope: 'session',
+    },
+    personality: {
+      traits: {
+        formality: 0.5,
+        humor: 0.3,
+        patience: 0.8,
+        encouragement: 0.7,
+        detail: 0.6,
+      },
+      communicationStyle: 'friendly',
+      languageComplexity: 'moderate',
+    },
+    policies: [],
+    appearance: {
+      avatar: '/avatars/teacher.png',
+      color: '#3b82f6',
+    },
+    priority: 5,
+    ...overrides,
+  };
+}
+
+/**
+ * Pre-built agent templates
+ */
+export const AGENT_TEMPLATES: Record<string, Omit<AgentPrimitive, 'id' | 'metadata'>> = {
+  teacher: createAgentTemplate({
+    name: 'Teacher',
+    role: 'teacher',
+    systemPrompt: `You are the lead teacher. Explain concepts with clarity, warmth, and enthusiasm.
+Use analogies and real-world examples. Pause to check understanding.
+Adapt your pace to the students' needs. Encourage participation.`,
+    personality: {
+      traits: { formality: 0.6, humor: 0.3, patience: 0.9, encouragement: 0.8, detail: 0.7 },
+      communicationStyle: 'friendly',
+      languageComplexity: 'moderate',
+    },
+```
+
+### agents/index.ts
+```
+/**
+ * Agent System
+ *
+ * Core agent primitives, templates, and utilities for the OpenMAIC platform.
+ * Agents are the foundation of all AI interactions - teaching, tutoring,
+ * moderation, assessment, and platform guidance.
+ */
+export type {
+  AgentPrimitive,
+  AgentRole,
+  AgentTool,
+  AgentMemoryConfig,
+  MemoryScope,
+  AgentModelPreference,
+  AgentPersonality,
+  AgentPolicy,
+  AgentAppearance,
+  AgentMetadata,
+} from './types';
+
+export { AGENT_TEMPLATES, createAgentTemplate } from './templates';
+```
+
+### agents/types.ts
+```
+/**
+ * Agent System Types
+ *
+ * Defines the agent primitive with: role, prompt, tools, memory, model,
+ * personality, and behavior policies. This is the foundation for all
+ * AI agents in the platform.
+ */
+
+/**
+ * Agent primitive - the core building block for all AI agents
+ */
+export interface AgentPrimitive {
+  id: string;
+  /** Display name */
+  name: string;
+  /** Agent role category */
+  role: AgentRole;
+  /** System prompt defining personality and behavior */
+  systemPrompt: string;
+  /** Available tools this agent can use */
+  tools: AgentTool[];
+  /** Memory configuration */
+  memory: AgentMemoryConfig;
+  /** Model preference (overrides default) */
+  modelPreference?: AgentModelPreference;
+  /** Personality traits */
+  personality: AgentPersonality;
+  /** Behavior policies and constraints */
+  policies: AgentPolicy[];
+  /** Visual configuration */
+  appearance: AgentAppearance;
+  /** Priority for turn-taking (1-10) */
+  priority: number;
+  /** Metadata */
+  metadata: AgentMetadata;
+}
+
+/**
+ * Pre-built agent roles
+ */
+export type AgentRole =
+  | 'teacher'
+  | 'student'
+  | 'moderator'
+  | 'examiner'
+  | 'research-assistant'
+  | 'mentor'
+  | 'debater-pro'
+  | 'debater-con'
+  | 'guide'
+  | 'custom';
+
+/**
+ * Tool available to agents
+ */
+export interface AgentTool {
+  id: string;
+  name: string;
+  description: string;
+  /** Tool category for permission management */
 ```
 
 ### configs/latex.ts
@@ -3817,6 +4103,167 @@ export default function RootLayout({
 }
 ```
 
+### scenes/index.ts
+```
+/**
+ * Scene Engine
+ *
+ * Pluggable scene system for the OpenMAIC platform.
+ * Supports: Lecture, Quiz, Simulation, Discussion, Debate, Project
+ */
+export type {
+  SceneDefinition,
+  WidgetType,
+  LectureSceneConfig,
+  LectureSlide,
+  QuizSceneConfig,
+  QuizQuestionConfig,
+  SimulationSceneConfig,
+  SimulationEnvironment,
+  SimulationRule,
+  SimulationAgentRole,
+  DiscussionSceneConfig,
+  DebateSceneConfig,
+  DebateFormat,
+  DebateSide,
+  DebateModeratorConfig,
+  ProjectSceneConfig,
+  ProjectMilestone,
+  ProjectRole,
+  SceneConfig,
+} from './types';
+
+export { sceneRegistry } from './registry';
+```
+
+### scenes/registry.ts
+```
+/**
+ * Scene Type Registry
+ *
+ * Central registry for all available scene types.
+ * New scene types can be registered via the plugin system.
+ */
+
+import type { SceneDefinition, WidgetType } from './types';
+import type { SceneTypeId } from '@/courses/types';
+
+/**
+ * Built-in scene type definitions
+ */
+const BUILT_IN_SCENES: Record<string, SceneDefinition> = {
+  lecture: {
+    typeId: 'lecture',
+    name: 'Lecture',
+    description: 'Traditional teaching with slides, narration, and whiteboard',
+    icon: 'presentation',
+    defaultAgentRoles: ['teacher', 'assistant'],
+    availableWidgets: ['slides', 'whiteboard', 'notepad', 'chat'] as WidgetType[],
+    defaultConfig: {
+      narrationEnabled: true,
+      whiteboardEnabled: true,
+      interactiveQuestionsEnabled: false,
+    },
+  },
+  quiz: {
+    typeId: 'quiz',
+    name: 'Quiz',
+    description: 'Assessment with multiple question types and AI-powered grading',
+    icon: 'clipboard-check',
+    defaultAgentRoles: ['examiner'],
+    availableWidgets: ['timer', 'notepad'] as WidgetType[],
+    defaultConfig: {
+      shuffleQuestions: false,
+      showFeedback: true,
+      passingScore: 70,
+    },
+  },
+  simulation: {
+    typeId: 'simulation',
+    name: 'Simulation',
+    description: 'Interactive simulation with rules, events, and AI agent societies',
+    icon: 'flask',
+    defaultAgentRoles: ['teacher', 'assistant'],
+    availableWidgets: ['whiteboard', 'chat', 'graph-viewer'] as WidgetType[],
+    defaultConfig: {
+      simulationType: 'generic',
+    },
+  },
+  discussion: {
+    typeId: 'discussion',
+    name: 'Discussion',
+    description: 'Guided group discussion with optional AI moderation',
+    icon: 'messages-square',
+    defaultAgentRoles: ['moderator', 'assistant'],
+    availableWidgets: ['chat', 'poll', 'notepad'] as WidgetType[],
+    defaultConfig: {
+      moderatorEnabled: true,
+```
+
+### scenes/types.ts
+```
+/**
+ * Scene Engine Types
+ *
+ * Defines the pluggable scene interface and core scene type implementations.
+ * Each scene type defines its content structure, agent roles, and interactive widgets.
+ */
+
+import type { SceneTypeId } from '@/courses/types';
+
+/**
+ * Base scene definition - all scene types implement this interface
+ */
+export interface SceneDefinition {
+  /** Unique scene type identifier */
+  typeId: SceneTypeId;
+  /** Human-readable name */
+  name: string;
+  /** Short description of the scene type */
+  description: string;
+  /** Icon identifier for the UI */
+  icon: string;
+  /** Default agent roles for this scene type */
+  defaultAgentRoles: string[];
+  /** Available widgets for this scene type */
+  availableWidgets: WidgetType[];
+  /** Default configuration */
+  defaultConfig: Record<string, unknown>;
+}
+
+/**
+ * Widget types available in scenes
+ */
+export type WidgetType =
+  | 'slides'
+  | 'whiteboard'
+  | 'poll'
+  | 'timer'
+  | 'code-editor'
+  | 'chat'
+  | 'video'
+  | 'notepad'
+  | 'file-upload'
+  | 'graph-viewer';
+
+/**
+ * Lecture scene - Traditional teaching with slides and narration
+ */
+export interface LectureSceneConfig {
+  type: 'lecture';
+  slides: LectureSlide[];
+  narrationEnabled: boolean;
+  whiteboardEnabled: boolean;
+  interactiveQuestionsEnabled: boolean;
+}
+
+export interface LectureSlide {
+  id: string;
+  title: string;
+  content: string;
+  notes?: string;
+```
+
 ### components/server-providers-init.tsx
 ```
 'use client';
@@ -3967,6 +4414,70 @@ export function UserProfileCard() {
     if (!file) return;
 ```
 
+### components/platform-assistant.tsx
+```
+'use client';
+
+/**
+ * Platform Assistant
+ *
+ * Persistent in-app AI companion (floating bubble) built using the
+ * OpenMAIC agent system. Provides onboarding, navigation, Q&A,
+ * and natural-language feature execution.
+ *
+ * This is the "OpenMAIC Guide" agent — dogfooding the platform's own
+ * agent primitives from day one.
+ */
+
+import { useState } from 'react';
+
+export function PlatformAssistant() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <>
+      {/* Floating bubble trigger */}
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95"
+        aria-label="Open platform assistant"
+      >
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      </button>
+
+      {/* Assistant panel */}
+      {isOpen && (
+        <div className="fixed bottom-24 right-6 z-50 flex h-[480px] w-[380px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-primary"
+                >
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+```
+
 ### components/stage.tsx
 ```
 'use client';
@@ -4084,6 +4595,255 @@ export function createLogger(tag: string) {
     warn: (...args: unknown[]) => emit('warn', args),
     error: (...args: unknown[]) => emit('error', args),
   };
+}
+```
+
+### courses/index.ts
+```
+/**
+ * Course Data Model
+ *
+ * Exports the full course hierarchy types and utilities.
+ * Schema: School → Courses → Modules → Lessons → Scenes
+ */
+export type {
+  School,
+  SchoolSettings,
+  Course,
+  CourseLevel,
+  CourseStatus,
+  CourseSettings,
+  Module,
+  ModuleStatus,
+  Lesson,
+  LessonStatus,
+  LessonAgentConfig,
+  LessonScene,
+  SceneTypeId,
+  Enrollment,
+  EnrollmentStatus,
+  CourseProgress,
+} from './types';
+```
+
+### courses/types.ts
+```
+/**
+ * Course Data Model & Hierarchy Types
+ *
+ * Defines the nested structure: School → Courses → Modules → Lessons → Scenes
+ * This hierarchy enables rich course organization and management.
+ */
+
+/**
+ * School - Top-level organizational unit
+ */
+export interface School {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  logoUrl?: string;
+  ownerId: string;
+  settings: SchoolSettings;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SchoolSettings {
+  defaultLanguage: string;
+  allowedLanguages: string[];
+  theme?: string;
+  enablePublicCatalog: boolean;
+}
+
+/**
+ * Course - A structured learning program within a school
+ */
+export interface Course {
+  id: string;
+  schoolId: string;
+  title: string;
+  slug: string;
+  description?: string;
+  coverImageUrl?: string;
+  language: string;
+  level: CourseLevel;
+  tags: string[];
+  status: CourseStatus;
+  version: number;
+  authorId: string;
+  collaboratorIds: string[];
+  settings: CourseSettings;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt?: string;
+}
+
+export type CourseLevel = 'beginner' | 'intermediate' | 'advanced' | 'all-levels';
+export type CourseStatus = 'draft' | 'review' | 'published' | 'archived';
+
+export interface CourseSettings {
+  enableAdaptiveLearning: boolean;
+  enableAgents: boolean;
+  defaultSceneType: string;
+  estimatedDurationMinutes?: number;
+```
+
+### knowledge/index.ts
+```
+/**
+ * Knowledge Layer
+ *
+ * Vector store integration, RAG pipeline, and knowledge graph
+ * for knowledge-grounded explanations in the OpenMAIC platform.
+ */
+export type {
+  KnowledgeDocument,
+  RAGResult,
+  RAGConfig,
+  Concept,
+} from './types';
+```
+
+### knowledge/types.ts
+```
+/**
+ * Knowledge Layer Types
+ *
+ * Defines types for the vector store integration, RAG pipeline,
+ * and knowledge-grounded explanations.
+ */
+
+/**
+ * Knowledge document - a piece of content indexed for RAG
+ */
+export interface KnowledgeDocument {
+  id: string;
+  /** Source type */
+  sourceType: 'course-material' | 'student-notes' | 'external' | 'generated';
+  /** Associated course/lesson IDs */
+  courseId?: string;
+  lessonId?: string;
+  /** Document content */
+  title: string;
+  content: string;
+  /** Metadata for filtering */
+  metadata: Record<string, string>;
+  /** Embedding vector (populated by vector store) */
+  embedding?: number[];
+  /** Chunk information */
+  chunkIndex?: number;
+  totalChunks?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * RAG query result
+ */
+export interface RAGResult {
+  documentId: string;
+  content: string;
+  score: number;
+  metadata: Record<string, string>;
+}
+
+/**
+ * RAG pipeline configuration
+ */
+export interface RAGConfig {
+  /** Vector store provider */
+  provider: 'pgvector' | 'qdrant' | 'memory';
+  /** Number of results to retrieve */
+  topK: number;
+  /** Minimum similarity score threshold */
+  scoreThreshold: number;
+  /** Whether to rerank results */
+  rerankEnabled: boolean;
+  /** Embedding model configuration */
+  embeddingModel: {
+    providerId: string;
+    modelId: string;
+  };
+}
+
+```
+
+### app/dashboard/page.tsx
+```
+/**
+ * Dashboard Router
+ *
+ * Redirects users to their role-specific dashboard.
+ * Default: student dashboard (most common role).
+ */
+import { redirect } from 'next/navigation';
+
+export default function DashboardPage() {
+  // TODO: Read user role from auth context and redirect accordingly
+  redirect('/dashboard/student');
+}
+```
+
+### app/dashboard/layout.tsx
+```
+/**
+ * Dashboard Layout
+ *
+ * Shared layout for all role-based dashboards.
+ * Provides navigation sidebar, header, and assistant bubble.
+ */
+import type { Metadata } from 'next';
+import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Dashboard - OpenMAIC',
+  description: 'Your personalized learning dashboard',
+};
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-screen bg-background">
+      {/* Sidebar navigation - to be implemented */}
+      <aside className="hidden w-64 border-r border-border bg-card lg:block">
+        <div className="flex h-14 items-center border-b border-border px-6">
+          <span className="text-lg font-semibold">OpenMAIC</span>
+        </div>
+        <nav className="p-4">
+          <ul className="space-y-1">
+            <li>
+              <Link
+                href="/dashboard/student"
+                className="block rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              >
+                Student
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/dashboard/teacher"
+                className="block rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              >
+                Teacher
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/dashboard/admin"
+                className="block rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              >
+                Admin
+              </Link>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+
+      {/* Main content area */}
+      <main className="flex-1">{children}</main>
+    </div>
+  );
 }
 ```
 
@@ -4287,6 +5047,198 @@ export default function ClassroomDetailPage() {
       }
 
       // Restore completed media generation tasks from IndexedDB
+```
+
+### app/dashboard/teacher/page.tsx
+```
+/**
+ * Teacher Dashboard
+ *
+ * Features: all courses/modules at a glance, live classroom controls,
+ * student analytics, one-click publishing.
+ */
+
+import Link from 'next/link';
+
+export default function TeacherDashboardPage() {
+  return (
+    <div className="p-6 lg:p-8">
+      <header className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Teacher Dashboard</h1>
+          <p className="text-muted-foreground">Manage your courses and classrooms</p>
+        </div>
+        <Link
+          href="/"
+          className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          Create Lesson
+        </Link>
+      </header>
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {/* My Courses */}
+        <div className="col-span-full rounded-xl border border-border bg-card p-6">
+          <h2 className="mb-4 text-lg font-semibold">My Courses</h2>
+          <p className="text-sm text-muted-foreground">
+            No courses created yet. Click &quot;Create Lesson&quot; to get started.
+          </p>
+        </div>
+
+        {/* Student Analytics */}
+        <div className="rounded-xl border border-border bg-card p-6">
+          <h2 className="mb-4 text-lg font-semibold">Student Analytics</h2>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Total Students</span>
+              <span className="text-2xl font-bold">0</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Active Today</span>
+              <span className="text-2xl font-bold">0</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Avg. Completion</span>
+              <span className="text-2xl font-bold">0%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Live Classrooms */}
+        <div className="rounded-xl border border-border bg-card p-6">
+          <h2 className="mb-4 text-lg font-semibold">Live Classrooms</h2>
+          <p className="text-sm text-muted-foreground">No active classrooms</p>
+        </div>
+
+        {/* Quick Actions */}
+```
+
+### app/dashboard/student/page.tsx
+```
+/**
+ * Student Dashboard
+ *
+ * Features: progress rings, adaptive path suggestions, quick-start scenes,
+ * "continue learning" cards, and recent activity.
+ */
+
+import Link from 'next/link';
+
+export default function StudentDashboardPage() {
+  return (
+    <div className="p-6 lg:p-8">
+      <header className="mb-8">
+        <h1 className="text-2xl font-bold tracking-tight">Student Dashboard</h1>
+        <p className="text-muted-foreground">Track your progress and continue learning</p>
+      </header>
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {/* Continue Learning Card */}
+        <div className="col-span-full rounded-xl border border-border bg-card p-6">
+          <h2 className="mb-4 text-lg font-semibold">Continue Learning</h2>
+          <p className="text-sm text-muted-foreground">
+            No courses enrolled yet. Start by exploring available courses.
+          </p>
+        </div>
+
+        {/* Progress Overview */}
+        <div className="rounded-xl border border-border bg-card p-6">
+          <h2 className="mb-4 text-lg font-semibold">Progress</h2>
+          <div className="flex items-center justify-center py-8">
+            <div className="relative h-32 w-32">
+              <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
+                <path
+                  d="M18 2.0845a 15.9155 15.9155 0 0 1 0 31.831a 15.9155 15.9155 0 0 1 0 -31.831"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="text-muted"
+                />
+                <path
+                  d="M18 2.0845a 15.9155 15.9155 0 0 1 0 31.831a 15.9155 15.9155 0 0 1 0 -31.831"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeDasharray="0, 100"
+                  className="text-primary"
+                />
+              </svg>
+              <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold">
+                0%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Start */}
+        <div className="rounded-xl border border-border bg-card p-6">
+          <h2 className="mb-4 text-lg font-semibold">Quick Start</h2>
+          <ul className="space-y-3">
+            <li>
+```
+
+### app/dashboard/admin/page.tsx
+```
+/**
+ * Admin Dashboard
+ *
+ * Features: user management, observability graphs, plugin marketplace,
+ * security controls, scaling knobs.
+ */
+
+export default function AdminDashboardPage() {
+  return (
+    <div className="p-6 lg:p-8">
+      <header className="mb-8">
+        <h1 className="text-2xl font-bold tracking-tight">Admin Dashboard</h1>
+        <p className="text-muted-foreground">Platform management and monitoring</p>
+      </header>
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {/* Stats Cards */}
+        <div className="rounded-xl border border-border bg-card p-6">
+          <p className="text-sm text-muted-foreground">Total Users</p>
+          <p className="mt-2 text-3xl font-bold">0</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-6">
+          <p className="text-sm text-muted-foreground">Active Courses</p>
+          <p className="mt-2 text-3xl font-bold">0</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-6">
+          <p className="text-sm text-muted-foreground">Agent Calls (24h)</p>
+          <p className="mt-2 text-3xl font-bold">0</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-6">
+          <p className="text-sm text-muted-foreground">System Health</p>
+          <p className="mt-2 text-3xl font-bold text-green-500">OK</p>
+        </div>
+
+        {/* User Management */}
+        <div className="col-span-full rounded-xl border border-border bg-card p-6 lg:col-span-2">
+          <h2 className="mb-4 text-lg font-semibold">User Management</h2>
+          <p className="text-sm text-muted-foreground">
+            User registration and role management will be available when authentication is
+            configured.
+          </p>
+        </div>
+
+        {/* System Monitoring */}
+        <div className="col-span-full rounded-xl border border-border bg-card p-6 lg:col-span-2">
+          <h2 className="mb-4 text-lg font-semibold">System Monitoring</h2>
+          <p className="text-sm text-muted-foreground">
+            Enable OpenTelemetry in your environment to see system metrics and traces.
+          </p>
+        </div>
+
+        {/* Plugin Marketplace */}
+        <div className="col-span-full rounded-xl border border-border bg-card p-6">
+          <h2 className="mb-4 text-lg font-semibold">Plugin Marketplace</h2>
+          <p className="text-sm text-muted-foreground">
+            The plugin marketplace will be available in a future release. Plugins will allow
+            extending the platform with custom agents, scene types, and widgets.
+          </p>
+        </div>
+      </div>
 ```
 
 ### app/generation-preview/components/visualizers.tsx
@@ -19053,6 +20005,70 @@ export interface SceneRecord {
   order: number; // Display order
 ```
 
+### lib/i18n/platform.ts
+```
+/**
+ * Platform i18n Strings
+ *
+ * Translation keys for the new platform features:
+ * course management, dashboards, agent system, and assistant.
+ * These supplement the existing common/stage/chat/generation/settings i18n.
+ */
+
+export const platformZhCN = {
+  // Course hierarchy
+  'platform.school': '学校',
+  'platform.course': '课程',
+  'platform.module': '模块',
+  'platform.lesson': '课时',
+  'platform.scene': '场景',
+
+  // Course management
+  'platform.createCourse': '创建课程',
+  'platform.editCourse': '编辑课程',
+  'platform.publishCourse': '发布课程',
+  'platform.courseSettings': '课程设置',
+  'platform.courseStatus.draft': '草稿',
+  'platform.courseStatus.review': '审核中',
+  'platform.courseStatus.published': '已发布',
+  'platform.courseStatus.archived': '已归档',
+
+  // Scene types
+  'platform.sceneType.lecture': '讲授',
+  'platform.sceneType.quiz': '测验',
+  'platform.sceneType.simulation': '模拟',
+  'platform.sceneType.discussion': '讨论',
+  'platform.sceneType.debate': '辩论',
+  'platform.sceneType.project': '项目',
+
+  // Dashboards
+  'platform.dashboard': '仪表盘',
+  'platform.dashboard.student': '学生仪表盘',
+  'platform.dashboard.teacher': '教师仪表盘',
+  'platform.dashboard.admin': '管理员仪表盘',
+  'platform.dashboard.progress': '学习进度',
+  'platform.dashboard.courses': '我的课程',
+  'platform.dashboard.analytics': '数据分析',
+  'platform.dashboard.quickStart': '快速开始',
+  'platform.dashboard.continueLearning': '继续学习',
+  'platform.dashboard.recentActivity': '最近活动',
+
+  // Agent system
+  'platform.agent.teacher': '教师',
+  'platform.agent.student': '学生',
+  'platform.agent.moderator': '主持人',
+  'platform.agent.examiner': '考官',
+  'platform.agent.researcher': '研究助手',
+  'platform.agent.mentor': '导师',
+  'platform.agent.guide': '平台向导',
+
+  // Assistant
+  'platform.assistant.title': 'OpenMAIC 助手',
+  'platform.assistant.placeholder': '问我任何关于平台的问题...',
+  'platform.assistant.welcome': '你好！我是 OpenMAIC 助手，可以帮你使用平台的任何功能。',
+
+```
+
 ### lib/i18n/generation.ts
 ```
 export const generationZhCN = {
@@ -19126,6 +20142,7 @@ import { stageZhCN, stageEnUS } from './stage';
 import { chatZhCN, chatEnUS } from './chat';
 import { generationZhCN, generationEnUS } from './generation';
 import { settingsZhCN, settingsEnUS } from './settings';
+import { platformZhCN, platformEnUS } from './platform';
 
 export const translations = {
   'zh-CN': {
@@ -19134,6 +20151,7 @@ export const translations = {
     ...chatZhCN,
     ...generationZhCN,
     ...settingsZhCN,
+    ...platformZhCN,
   },
   'en-US': {
     ...commonEnUS,
@@ -19141,6 +20159,7 @@ export const translations = {
     ...chatEnUS,
     ...generationEnUS,
     ...settingsEnUS,
+    ...platformEnUS,
   },
 } as const;
 
@@ -20411,6 +21430,70 @@ export const thinkingContext = new AsyncLocalStorage<ThinkingConfig | undefined>
 // importing this module (which would pull node:async_hooks into the
 // client bundle via the settings.ts → providers.ts import chain).
 (globalThis as Record<string, unknown>).__thinkingContext = thinkingContext;
+```
+
+### lib/ai/model-router.ts
+```
+/**
+ * Model Routing Layer
+ *
+ * Routes inference requests to the appropriate provider based on:
+ * 1. User BYOK (Bring Your Own Key) configuration
+ * 2. Per-agent model preferences
+ * 3. Server-side default model
+ * 4. Fallback chain
+ *
+ * This layer is model-agnostic and supports OpenAI, Anthropic, Google,
+ * DeepSeek, and any OpenAI-compatible provider.
+ */
+
+import type { ModelConfig, ProviderId } from '@/lib/types/provider';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ModelRouter');
+
+/**
+ * Model routing priority (highest to lowest):
+ * 1. Explicit request config (per-API-call override)
+ * 2. Agent model preference (agent-specific model)
+ * 3. User BYOK settings (user's preferred provider + key)
+ * 4. Server default model (DEFAULT_MODEL env var)
+ * 5. First available configured provider
+ */
+
+export interface ModelRouteRequest {
+  /** Explicit provider/model override */
+  explicit?: {
+    providerId: ProviderId;
+    modelId: string;
+  };
+  /** Agent preference (from agent config) */
+  agentPreference?: {
+    providerId?: string;
+    modelId?: string;
+  };
+  /** User BYOK config (from user settings) */
+  userConfig?: {
+    providerId: ProviderId;
+    modelId: string;
+    apiKey: string;
+    baseUrl?: string;
+  };
+  /** Task type hint for intelligent routing */
+  taskType?: 'generation' | 'chat' | 'grading' | 'embedding' | 'moderation';
+}
+
+export interface ModelRouteResult {
+  config: ModelConfig;
+  source: 'explicit' | 'agent-preference' | 'user-byok' | 'server-default' | 'fallback';
+}
+
+/**
+ * Parse the DEFAULT_MODEL environment variable
+ * Format: "provider:model-id" (e.g., "anthropic:claude-3-5-haiku-20241022")
+ */
+export function parseDefaultModel(): { providerId: ProviderId; modelId: string } | null {
+  const defaultModel = process.env.DEFAULT_MODEL;
 ```
 
 ### lib/ai/llm.ts
