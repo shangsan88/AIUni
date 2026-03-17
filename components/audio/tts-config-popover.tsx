@@ -35,6 +35,7 @@ export function TtsConfigPopover() {
   const ttsEnabled = useSettingsStore((s) => s.ttsEnabled);
   const setTTSEnabled = useSettingsStore((s) => s.setTTSEnabled);
   const ttsProviderId = useSettingsStore((s) => s.ttsProviderId);
+  const ttsModelId = useSettingsStore((s) => s.ttsModelId);
   const ttsVoice = useSettingsStore((s) => s.ttsVoice);
   const ttsProvidersConfig = useSettingsStore((s) => s.ttsProvidersConfig);
   const setTTSVoice = useSettingsStore((s) => s.setTTSVoice);
@@ -70,6 +71,7 @@ export function TtsConfigPopover() {
           text: '你好，欢迎来到AI课堂！让我们一起学习吧。',
           audioId: 'preview',
           ttsProviderId: ttsProviderId,
+          ttsModelId: ttsModelId,
           ttsVoice: ttsVoice,
           ttsApiKey: providerConfig?.apiKey,
           ttsBaseUrl: providerConfig?.baseUrl,
@@ -95,7 +97,7 @@ export function TtsConfigPopover() {
     } catch {
       setPreviewing(false);
     }
-  }, [ttsProviderId, ttsVoice, ttsProvidersConfig, previewing]);
+  }, [ttsProviderId, ttsModelId, ttsVoice, ttsProvidersConfig, previewing]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

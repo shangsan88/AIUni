@@ -101,6 +101,7 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
   const setVideoModelId = useSettingsStore((s) => s.setVideoModelId);
 
   const ttsProviderId = useSettingsStore((s) => s.ttsProviderId);
+  const ttsModelId = useSettingsStore((s) => s.ttsModelId);
   const ttsVoice = useSettingsStore((s) => s.ttsVoice);
   const ttsSpeed = useSettingsStore((s) => s.ttsSpeed);
   const ttsProvidersConfig = useSettingsStore((s) => s.ttsProvidersConfig);
@@ -198,6 +199,7 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
           text: '你好，欢迎来到AI课堂！让我们一起学习吧。',
           audioId: 'preview',
           ttsProviderId,
+          ttsModelId,
           ttsVoice,
           ttsApiKey: providerConfig?.apiKey,
           ttsBaseUrl: providerConfig?.baseUrl,
@@ -221,7 +223,7 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
     } catch {
       setPreviewing(false);
     }
-  }, [ttsProviderId, ttsVoice, ttsProvidersConfig, previewing]);
+  }, [ttsProviderId, ttsModelId, ttsVoice, ttsProvidersConfig, previewing]);
 
   // ASR: only available providers
   const asrGroups = useMemo(
