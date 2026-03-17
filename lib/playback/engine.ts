@@ -434,7 +434,11 @@ export class PlaybackEngine {
         };
 
         this.audioPlayer
-          .play(speechAction.audioId || '')
+          .play(speechAction.audioId || '', {
+            text: speechAction.text,
+            voice: speechAction.voice,
+            speed: speechAction.speed,
+          })
           .then((audioStarted) => {
             if (!audioStarted) scheduleReadingTimer();
           })

@@ -167,7 +167,11 @@ export class ActionEngine {
 
     return new Promise<void>((resolve) => {
       this.audioPlayer!.onEnded(() => resolve());
-      this.audioPlayer!.play(action.audioId || '')
+      this.audioPlayer!.play(action.audioId || '', {
+        text: action.text,
+        voice: action.voice,
+        speed: action.speed,
+      })
         .then((audioStarted) => {
           if (!audioStarted) resolve();
         })

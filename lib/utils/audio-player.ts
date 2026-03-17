@@ -8,32 +8,49 @@
 
 import { db } from '@/lib/utils/database';
 import { createLogger } from '@/lib/logger';
+import { useSettingsStore } from '@/lib/store/settings';
 
 const log = createLogger('AudioPlayer');
+
+interface BrowserTTSFallback {
+  text: string;
+  voice?: string;
+  speed?: number;
+}
 
 /**
  * Audio player implementation
  */
 export class AudioPlayer {
   private audio: HTMLAudioElement | null = null;
+  private utterance: SpeechSynthesisUtterance | null = null;
   private onEndedCallback: (() => void) | null = null;
   private muted: boolean = false;
   private volume: number = 1;
   private playbackRate: number = 1;
+
+  private hasBrowserSpeechActivity(): boolean {
+    return (
+      typeof window !== 'undefined' &&
+      !!window.speechSynthesis &&
+      (window.speechSynthesis.speaking ||
+        window.speechSynthesis.pending ||
+        window.speechSynthesis.paused)
+    );
+  }
 
   /**
    * Play audio (from IndexedDB pre-generated cache)
    * @param audioId Audio ID
    * @returns true if audio started playing, false if no audio (TTS disabled or not generated)
    */
-  public async play(audioId: string): Promise<boolean> {
+  public async play(audioId: string, fallback?: BrowserTTSFallback): Promise<boolean> {
     try {
       // Get audio from database
       const audioRecord = await db.audioFiles.get(audioId);
 
       if (!audioRecord) {
-        // Pre-generated audio does not exist (generation failed), skip silently
-        return false;
+        return this.playBrowserTTSFallback(fallback);
       }
 
       // Stop current playback
@@ -69,12 +86,67 @@ export class AudioPlayer {
     }
   }
 
+  private playBrowserTTSFallback(fallback?: BrowserTTSFallback): boolean {
+    const { ttsProviderId, ttsVoice, ttsSpeed } = useSettingsStore.getState();
+
+    if (ttsProviderId !== 'browser-native-tts' || !fallback?.text) {
+      return false;
+    }
+
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      return false;
+    }
+
+    this.stop();
+
+    const utterance = new SpeechSynthesisUtterance(fallback.text);
+    utterance.lang = 'zh-CN';
+    utterance.rate = fallback.speed ?? ttsSpeed ?? this.playbackRate;
+    utterance.volume = this.muted ? 0 : this.volume;
+
+    const voices = window.speechSynthesis.getVoices();
+    const desiredVoice = fallback.voice || ttsVoice;
+    const matchedVoice = voices.find(
+      (voice) =>
+        voice.voiceURI === desiredVoice ||
+        voice.name === desiredVoice ||
+        voice.lang === desiredVoice,
+    );
+    if (matchedVoice) {
+      utterance.voice = matchedVoice;
+      utterance.lang = matchedVoice.lang || utterance.lang;
+    }
+
+    utterance.onend = () => {
+      this.utterance = null;
+      this.onEndedCallback?.();
+    };
+    utterance.onerror = (event) => {
+      this.utterance = null;
+      log.error('Browser TTS playback failed:', event.error);
+      this.onEndedCallback?.();
+    };
+
+    this.utterance = utterance;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+    return true;
+  }
+
   /**
    * Pause playback
    */
   public pause(): void {
     if (this.audio && !this.audio.paused) {
       this.audio.pause();
+    }
+    if (
+      this.utterance &&
+      typeof window !== 'undefined' &&
+      window.speechSynthesis &&
+      (window.speechSynthesis.speaking || window.speechSynthesis.pending)
+    ) {
+      window.speechSynthesis.pause();
     }
   }
 
@@ -86,6 +158,10 @@ export class AudioPlayer {
       this.audio.pause();
       this.audio.currentTime = 0;
       this.audio = null;
+    }
+    if (this.utterance && typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      this.utterance = null;
     }
     // Note: onEndedCallback intentionally NOT cleared here because play()
     // calls stop() internally — clearing would break the callback chain.
@@ -102,13 +178,19 @@ export class AudioPlayer {
         log.error('Failed to resume audio:', error);
       });
     }
+    if (this.utterance && typeof window !== 'undefined' && window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
   }
 
   /**
    * Get current playback status (actively playing, not paused)
    */
   public isPlaying(): boolean {
-    return this.audio !== null && !this.audio.paused;
+    return (
+      (this.audio !== null && !this.audio.paused) ||
+      (this.utterance !== null && this.hasBrowserSpeechActivity() && !window.speechSynthesis.paused)
+    );
   }
 
   /**
@@ -116,7 +198,7 @@ export class AudioPlayer {
    * Used to decide whether to resume playback or skip to the next line
    */
   public hasActiveAudio(): boolean {
-    return this.audio !== null;
+    return this.audio !== null || (this.utterance !== null && this.hasBrowserSpeechActivity());
   }
 
   /**
