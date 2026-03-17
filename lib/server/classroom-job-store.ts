@@ -197,30 +197,38 @@ export async function markClassroomGenerationJobSucceeded(
   jobId: string,
   result: GenerateClassroomResult,
 ): Promise<ClassroomGenerationJob> {
-  return updateClassroomGenerationJob(jobId, {
-    status: 'succeeded',
-    step: 'completed',
-    progress: 100,
-    message: 'Classroom generation completed',
-    completedAt: new Date().toISOString(),
-    scenesGenerated: result.scenesCount,
-    result: {
-      classroomId: result.id,
-      url: result.url,
-      scenesCount: result.scenesCount,
-    },
-  });
+  try {
+    return await updateClassroomGenerationJob(jobId, {
+      status: 'succeeded',
+      step: 'completed',
+      progress: 100,
+      message: 'Classroom generation completed',
+      completedAt: new Date().toISOString(),
+      scenesGenerated: result.scenesCount,
+      result: {
+        classroomId: result.id,
+        url: result.url,
+        scenesCount: result.scenesCount,
+      },
+    });
+  } finally {
+    jobLocks.delete(jobId);
+  }
 }
 
 export async function markClassroomGenerationJobFailed(
   jobId: string,
   error: string,
 ): Promise<ClassroomGenerationJob> {
-  return updateClassroomGenerationJob(jobId, {
-    status: 'failed',
-    step: 'failed',
-    message: 'Classroom generation failed',
-    completedAt: new Date().toISOString(),
-    error,
-  });
+  try {
+    return await updateClassroomGenerationJob(jobId, {
+      status: 'failed',
+      step: 'failed',
+      message: 'Classroom generation failed',
+      completedAt: new Date().toISOString(),
+      error,
+    });
+  } finally {
+    jobLocks.delete(jobId);
+  }
 }

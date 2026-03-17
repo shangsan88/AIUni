@@ -24,7 +24,7 @@ export async function POST(req: Request) {
       return apiError('MISSING_REQUIRED_FIELD', 400, 'query is required');
     }
 
-    const apiKey = resolveWebSearchApiKey(clientApiKey);
+    const apiKey = resolveWebSearchApiKey(clientApiKey, { allowServerFallback: false });
     if (!apiKey) {
       return apiError(
         'MISSING_API_KEY',

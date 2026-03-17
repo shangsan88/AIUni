@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       language: language || 'auto',
       apiKey: clientBaseUrl
         ? apiKey || ''
-        : resolveASRApiKey(effectiveProviderId, apiKey || undefined),
+        : resolveASRApiKey(effectiveProviderId, apiKey || undefined, { allowServerFallback: false }),
       baseUrl: clientBaseUrl
         ? clientBaseUrl
         : resolveASRBaseUrl(effectiveProviderId, baseUrl || undefined),

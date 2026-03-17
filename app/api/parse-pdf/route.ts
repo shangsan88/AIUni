@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       providerId: effectiveProviderId,
       apiKey: clientBaseUrl
         ? apiKey || ''
-        : resolvePDFApiKey(effectiveProviderId, apiKey || undefined),
+        : resolvePDFApiKey(effectiveProviderId, apiKey || undefined, { allowServerFallback: false }),
       baseUrl: clientBaseUrl
         ? clientBaseUrl
         : resolvePDFBaseUrl(effectiveProviderId, baseUrl || undefined),

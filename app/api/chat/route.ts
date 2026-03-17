@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
 
     const effectiveApiKey = clientBaseUrl
       ? body.apiKey || ''
-      : resolveApiKey(providerId, body.apiKey);
+      : resolveApiKey(providerId, body.apiKey, { allowServerFallback: false });
     const effectiveBaseUrl = clientBaseUrl
       ? clientBaseUrl
       : resolveBaseUrl(providerId, body.baseUrl);

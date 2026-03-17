@@ -1,6 +1,6 @@
 /**
  * Settings Store
- * Global settings state synchronized with localStorage
+ * Global settings state synchronized with localStorage (encrypted)
  */
 
 import { create } from 'zustand';
@@ -16,6 +16,7 @@ import { IMAGE_PROVIDERS } from '@/lib/media/image-providers';
 import { VIDEO_PROVIDERS } from '@/lib/media/video-providers';
 import type { WebSearchProviderId } from '@/lib/web-search/types';
 import { createLogger } from '@/lib/logger';
+import { createEncryptedStorage } from '@/lib/store/encrypted-storage';
 
 const log = createLogger('Settings');
 
@@ -934,6 +935,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-storage',
       version: 2,
+      storage: createEncryptedStorage(),
       // Migrate persisted state
       migrate: (persistedState: unknown, version: number) => {
         const state = persistedState as Partial<SettingsState>;

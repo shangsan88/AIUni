@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 
     const apiKey = clientBaseUrl
       ? ttsApiKey || ''
-      : resolveTTSApiKey(ttsProviderId, ttsApiKey || undefined);
+      : resolveTTSApiKey(ttsProviderId, ttsApiKey || undefined, { allowServerFallback: false });
     const baseUrl = clientBaseUrl
       ? clientBaseUrl
       : resolveTTSBaseUrl(ttsProviderId, ttsBaseUrl || undefined);

@@ -232,9 +232,20 @@ export function getServerProviders(): Record<string, { models?: string[]; baseUr
   return result;
 }
 
+/** Options for API key resolution. */
+export interface ResolveKeyOptions {
+  /** When false, server-configured keys are never returned — only client-provided keys. Default: true. */
+  allowServerFallback?: boolean;
+}
+
 /** Resolve API key: client key > server key > empty string */
-export function resolveApiKey(providerId: string, clientKey?: string): string {
+export function resolveApiKey(
+  providerId: string,
+  clientKey?: string,
+  options?: ResolveKeyOptions,
+): string {
   if (clientKey) return clientKey;
+  if (options?.allowServerFallback === false) return '';
   return getConfig().providers[providerId]?.apiKey || '';
 }
 
@@ -263,8 +274,13 @@ export function getServerTTSProviders(): Record<string, { baseUrl?: string }> {
   return result;
 }
 
-export function resolveTTSApiKey(providerId: string, clientKey?: string): string {
+export function resolveTTSApiKey(
+  providerId: string,
+  clientKey?: string,
+  options?: ResolveKeyOptions,
+): string {
   if (clientKey) return clientKey;
+  if (options?.allowServerFallback === false) return '';
   return getConfig().tts[providerId]?.apiKey || '';
 }
 
@@ -287,8 +303,13 @@ export function getServerASRProviders(): Record<string, { baseUrl?: string }> {
   return result;
 }
 
-export function resolveASRApiKey(providerId: string, clientKey?: string): string {
+export function resolveASRApiKey(
+  providerId: string,
+  clientKey?: string,
+  options?: ResolveKeyOptions,
+): string {
   if (clientKey) return clientKey;
+  if (options?.allowServerFallback === false) return '';
   return getConfig().asr[providerId]?.apiKey || '';
 }
 
@@ -311,8 +332,13 @@ export function getServerPDFProviders(): Record<string, { baseUrl?: string }> {
   return result;
 }
 
-export function resolvePDFApiKey(providerId: string, clientKey?: string): string {
+export function resolvePDFApiKey(
+  providerId: string,
+  clientKey?: string,
+  options?: ResolveKeyOptions,
+): string {
   if (clientKey) return clientKey;
+  if (options?.allowServerFallback === false) return '';
   return getConfig().pdf[providerId]?.apiKey || '';
 }
 
@@ -334,8 +360,13 @@ export function getServerImageProviders(): Record<string, Record<string, never>>
   return result;
 }
 
-export function resolveImageApiKey(providerId: string, clientKey?: string): string {
+export function resolveImageApiKey(
+  providerId: string,
+  clientKey?: string,
+  options?: ResolveKeyOptions,
+): string {
   if (clientKey) return clientKey;
+  if (options?.allowServerFallback === false) return '';
   return getConfig().image[providerId]?.apiKey || '';
 }
 
@@ -360,8 +391,13 @@ export function getServerVideoProviders(): Record<string, Record<string, never>>
   return result;
 }
 
-export function resolveVideoApiKey(providerId: string, clientKey?: string): string {
+export function resolveVideoApiKey(
+  providerId: string,
+  clientKey?: string,
+  options?: ResolveKeyOptions,
+): string {
   if (clientKey) return clientKey;
+  if (options?.allowServerFallback === false) return '';
   return getConfig().video[providerId]?.apiKey || '';
 }
 
@@ -389,8 +425,9 @@ export function getServerWebSearchProviders(): Record<string, { baseUrl?: string
 }
 
 /** Resolve Tavily API key: client key > server key > TAVILY_API_KEY env > empty */
-export function resolveWebSearchApiKey(clientKey?: string): string {
+export function resolveWebSearchApiKey(clientKey?: string, options?: ResolveKeyOptions): string {
   if (clientKey) return clientKey;
+  if (options?.allowServerFallback === false) return '';
   const serverKey = getConfig().webSearch.tavily?.apiKey;
   if (serverKey) return serverKey;
   return process.env.TAVILY_API_KEY || '';

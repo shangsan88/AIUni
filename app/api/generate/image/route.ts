@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     const apiKey = clientBaseUrl
       ? clientApiKey || ''
-      : resolveImageApiKey(providerId, clientApiKey);
+      : resolveImageApiKey(providerId, clientApiKey, { allowServerFallback: false });
     if (!apiKey) {
       return apiError(
         'MISSING_API_KEY',
