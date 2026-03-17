@@ -93,7 +93,7 @@ export function WhiteboardCanvas() {
 
   // Get whiteboard elements
   const whiteboard = stage?.whiteboard?.[0];
-  const elements = whiteboard?.elements || [];
+  const elements = useMemo(() => whiteboard?.elements || [], [whiteboard?.elements]);
 
   // Whiteboard fixed size: 1000 x 562.5 (16:9)
   const canvasWidth = 1000;
@@ -125,12 +125,15 @@ export function WhiteboardCanvas() {
     if (elements.length === 0) return { scale: 1, tx: 0, ty: 0 };
 
     // Compute bounding box of all elements
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity;
     for (const el of elements) {
       const left = el.left ?? 0;
       const top = el.top ?? 0;
       const width = el.width ?? 0;
-      const height = el.height ?? 0;
+      const height = 'height' in el ? (el.height ?? 0) : 0;
       minX = Math.min(minX, left);
       minY = Math.min(minY, top);
       maxX = Math.max(maxX, left + width);
@@ -196,11 +199,11 @@ export function WhiteboardCanvas() {
       const dx = e.clientX - panStartRef.current.x;
       const dy = e.clientY - panStartRef.current.y;
       // Divide by containerScale so pan distance is consistent regardless of container size
-      const effectiveScale = containerScale * autoFitTransform.scale * viewZoom;
+      const effectiveScale = containerScale;
       setPanX(panStartRef.current.panX + dx / effectiveScale);
       setPanY(panStartRef.current.panY + dy / effectiveScale);
     },
-    [containerScale, autoFitTransform.scale, viewZoom],
+    [containerScale],
   );
 
   const handlePointerUp = useCallback(() => {
@@ -223,8 +226,8 @@ export function WhiteboardCanvas() {
   }, []);
 
   // ---- Double-click to reset (with smooth animation) ----
-  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
-    e.preventDefault(); // prevent text selection
+  const handleDoubleClick = useCallback((e?: React.MouseEvent) => {
+    e?.preventDefault(); // prevent text selection
     setIsResetting(true);
     setViewZoom(1);
     setPanX(0);
@@ -261,7 +264,11 @@ export function WhiteboardCanvas() {
             height: canvasHeight,
             transform: `scale(${containerScale})`,
             transformOrigin: 'top left',
-            cursor: isPanningRef.current ? 'grabbing' : (hasOverflow || isViewModified ? 'grab' : undefined),
+            cursor: isPanningRef.current
+              ? 'grabbing'
+              : hasOverflow || isViewModified
+                ? 'grab'
+                : undefined,
           }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -321,6 +328,7 @@ export function WhiteboardCanvas() {
                 animate={{ opacity: 0.7 }}
                 exit={{ opacity: 0 }}
                 whileHover={{ opacity: 1 }}
+                onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDoubleClick();
