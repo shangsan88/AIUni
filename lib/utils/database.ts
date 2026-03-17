@@ -11,6 +11,7 @@ import type {
 import type { SceneOutline } from '@/lib/types/generation';
 import type { UIMessage } from 'ai';
 import { createLogger } from '@/lib/logger';
+import { cleanupOldMedia } from '@/lib/utils/media-limits';
 
 const log = createLogger('Database');
 
@@ -327,6 +328,9 @@ export async function initDatabase(): Promise<void> {
     // under storage pressure (large media blobs can trigger LRU cleanup)
     void navigator.storage?.persist?.();
     log.info('Database initialized successfully');
+
+    // Best-effort cleanup of old media blobs (>7 days) to reclaim space
+    void cleanupOldMedia();
   } catch (error) {
     log.error('Failed to initialize database:', error);
     throw error;

@@ -23,12 +23,22 @@ import type { VideoProviderId, VideoGenerationOptions } from '@/lib/media/types'
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
+import { rateLimit, getClientIp } from '@/lib/server/rate-limit';
 
 const log = createLogger('VideoGeneration API');
 
 export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
+  // Rate limiting
+  const rl = rateLimit(getClientIp(request));
+  if (!rl.ok) {
+    return new Response(JSON.stringify({ error: 'Too many requests' }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json', 'Retry-After': String(rl.retryAfter) },
+    });
+  }
+
   try {
     const body = (await request.json()) as VideoGenerationOptions;
 

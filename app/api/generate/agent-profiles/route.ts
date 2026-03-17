@@ -11,6 +11,7 @@ import { callLLM } from '@/lib/ai/llm';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
+import { rateLimit, getClientIp } from '@/lib/server/rate-limit';
 
 const log = createLogger('Agent Profiles API');
 
@@ -48,6 +49,15 @@ function stripCodeFences(text: string): string {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const rl = rateLimit(getClientIp(req));
+  if (!rl.ok) {
+    return new Response(JSON.stringify({ error: 'Too many requests' }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json', 'Retry-After': String(rl.retryAfter) },
+    });
+  }
+
   try {
     const body = (await req.json()) as RequestBody;
     const { stageInfo, sceneOutlines, language, availableAvatars } = body;

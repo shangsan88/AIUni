@@ -21,6 +21,7 @@ import type { ThinkingConfig } from '@/lib/types/provider';
 import { apiError } from '@/lib/server/api-response';
 import { createLogger } from '@/lib/logger';
 import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
+import { rateLimit, getClientIp } from '@/lib/server/rate-limit';
 const log = createLogger('Chat API');
 
 // Allow streaming responses up to 60 seconds
@@ -44,6 +45,18 @@ export const maxDuration = 60;
  */
 export async function POST(req: NextRequest) {
   const encoder = new TextEncoder();
+
+  // Rate limiting
+  const rl = rateLimit(getClientIp(req));
+  if (!rl.ok) {
+    return new Response(JSON.stringify({ error: 'Too many requests' }), {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Retry-After': String(rl.retryAfter),
+      },
+    });
+  }
 
   try {
     const body: StatelessChatRequest = await req.json();
@@ -129,6 +142,9 @@ export async function POST(req: NextRequest) {
         }
       };
 
+      // Ensure heartbeat is cleaned up when the client disconnects
+      signal.addEventListener('abort', stopHeartbeat);
+
       try {
         startHeartbeat();
 
@@ -152,11 +168,8 @@ export async function POST(req: NextRequest) {
           await writer.write(encoder.encode(data));
         }
 
-        stopHeartbeat();
         await writer.close();
       } catch (error) {
-        stopHeartbeat();
-
         // If aborted, just close the writer silently
         if (signal.aborted) {
           log.info('Request aborted during streaming');
@@ -183,6 +196,8 @@ export async function POST(req: NextRequest) {
         } catch {
           // Writer may already be closed
         }
+      } finally {
+        stopHeartbeat();
       }
     })();
 

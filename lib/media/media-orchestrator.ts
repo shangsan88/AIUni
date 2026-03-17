@@ -12,6 +12,7 @@ import { db, mediaFileKey } from '@/lib/utils/database';
 import type { SceneOutline } from '@/lib/types/generation';
 import type { MediaGenerationRequest } from '@/lib/media/types';
 import { createLogger } from '@/lib/logger';
+import { assertBlobSize } from '@/lib/utils/media-limits';
 
 const log = createLogger('MediaOrchestrator');
 
@@ -130,6 +131,9 @@ async function generateSingleMedia(
     // Fetch blob from URL
     const blob = await fetchAsBlob(resultUrl);
     const posterBlob = posterUrl ? await fetchAsBlob(posterUrl).catch(() => undefined) : undefined;
+
+    // Reject oversized blobs before writing to IndexedDB
+    assertBlobSize(blob, req.type === 'image' ? 'Image' : 'Video');
 
     // Store in IndexedDB
     await db.mediaFiles.put({

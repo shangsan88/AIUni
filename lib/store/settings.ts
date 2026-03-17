@@ -4,7 +4,7 @@
  */
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import type { ProviderId } from '@/lib/ai/providers';
 import type { ProvidersConfig } from '@/lib/types/settings';
 import { PROVIDERS } from '@/lib/ai/providers';
@@ -935,7 +935,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'settings-storage',
       version: 2,
-      storage: createEncryptedStorage(),
+      storage: createJSONStorage(() => createEncryptedStorage()),
       // Migrate persisted state
       migrate: (persistedState: unknown, version: number) => {
         const state = persistedState as Partial<SettingsState>;
