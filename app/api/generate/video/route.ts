@@ -48,7 +48,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const apiKey = clientBaseUrl ? clientApiKey || '' : resolveVideoApiKey(providerId, clientApiKey);
+    const apiKey = clientBaseUrl
+      ? clientApiKey || ''
+      : resolveVideoApiKey(providerId, clientApiKey);
     if (!apiKey) {
       return apiError(
         'MISSING_API_KEY',

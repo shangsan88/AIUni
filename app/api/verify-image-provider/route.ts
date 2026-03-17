@@ -38,7 +38,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const apiKey = clientBaseUrl ? clientApiKey || '' : resolveImageApiKey(providerId, clientApiKey);
+    const apiKey = clientBaseUrl
+      ? clientApiKey || ''
+      : resolveImageApiKey(providerId, clientApiKey);
     const baseUrl = clientBaseUrl ? clientBaseUrl : resolveImageBaseUrl(providerId, clientBaseUrl);
 
     if (!apiKey) {

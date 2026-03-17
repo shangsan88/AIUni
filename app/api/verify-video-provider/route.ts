@@ -38,7 +38,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const apiKey = clientBaseUrl ? clientApiKey || '' : resolveVideoApiKey(providerId, clientApiKey);
+    const apiKey = clientBaseUrl
+      ? clientApiKey || ''
+      : resolveVideoApiKey(providerId, clientApiKey);
     const baseUrl = clientBaseUrl ? clientBaseUrl : resolveVideoBaseUrl(providerId, clientBaseUrl);
 
     if (!apiKey) {

@@ -73,8 +73,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const effectiveApiKey = clientBaseUrl ? body.apiKey || '' : resolveApiKey(providerId, body.apiKey);
-    const effectiveBaseUrl = clientBaseUrl ? clientBaseUrl : resolveBaseUrl(providerId, body.baseUrl);
+    const effectiveApiKey = clientBaseUrl
+      ? body.apiKey || ''
+      : resolveApiKey(providerId, body.apiKey);
+    const effectiveBaseUrl = clientBaseUrl
+      ? clientBaseUrl
+      : resolveBaseUrl(providerId, body.baseUrl);
     const proxy = resolveProxy(providerId);
 
     if (!effectiveApiKey) {

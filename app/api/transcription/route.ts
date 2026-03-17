@@ -36,8 +36,12 @@ export async function POST(req: NextRequest) {
     const config = {
       providerId: effectiveProviderId,
       language: language || 'auto',
-      apiKey: clientBaseUrl ? apiKey || '' : resolveASRApiKey(effectiveProviderId, apiKey || undefined),
-      baseUrl: clientBaseUrl ? clientBaseUrl : resolveASRBaseUrl(effectiveProviderId, baseUrl || undefined),
+      apiKey: clientBaseUrl
+        ? apiKey || ''
+        : resolveASRApiKey(effectiveProviderId, apiKey || undefined),
+      baseUrl: clientBaseUrl
+        ? clientBaseUrl
+        : resolveASRBaseUrl(effectiveProviderId, baseUrl || undefined),
     };
 
     // Convert audio file to buffer

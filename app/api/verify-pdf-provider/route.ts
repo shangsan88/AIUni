@@ -27,7 +27,9 @@ export async function POST(req: NextRequest) {
       return apiError('MISSING_REQUIRED_FIELD', 400, 'Base URL is required');
     }
 
-    const resolvedApiKey = clientBaseUrl ? (apiKey as string | undefined) || '' : resolvePDFApiKey(providerId, apiKey);
+    const resolvedApiKey = clientBaseUrl
+      ? (apiKey as string | undefined) || ''
+      : resolvePDFApiKey(providerId, apiKey);
 
     const headers: Record<string, string> = {};
     if (resolvedApiKey) {
