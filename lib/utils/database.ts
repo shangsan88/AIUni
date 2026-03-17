@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie';
 import type { Scene, SceneType, SceneContent, Whiteboard } from '@/lib/types/stage';
 import type { Action } from '@/lib/types/action';
+import type { AssessmentContext, QuizAnswerMap, QuizQuestionResult } from '@/lib/types/assessment';
 import type {
   SessionType,
   SessionStatus,
@@ -166,6 +167,22 @@ export interface GeneratedAgentRecord {
   createdAt: number;
 }
 
+/**
+ * QuizAttempt table - Persisted quiz submissions and derived assessment summary
+ */
+export interface QuizAttemptRecord {
+  attemptId: string; // Primary key
+  stageId: string; // FK -> stages.id
+  sceneId: string; // FK -> scenes.id
+  answers: QuizAnswerMap;
+  results: QuizQuestionResult[];
+  totalScore: number;
+  maxScore: number;
+  assessmentContext: AssessmentContext;
+  submittedAt: number;
+  createdAt: number;
+}
+
 /** Build the compound primary key for mediaFiles: `${stageId}:${elementId}` */
 export function mediaFileKey(stageId: string, elementId: string): string {
   return `${stageId}:${elementId}`;
@@ -191,6 +208,7 @@ class MAICDatabase extends Dexie {
   stageOutlines!: EntityTable<StageOutlinesRecord, 'stageId'>;
   mediaFiles!: EntityTable<MediaFileRecord, 'id'>;
   generatedAgents!: EntityTable<GeneratedAgentRecord, 'id'>;
+  quizAttempts!: EntityTable<QuizAttemptRecord, 'attemptId'>;
 
   constructor() {
     super(DATABASE_NAME);
@@ -308,6 +326,21 @@ class MAICDatabase extends Dexie {
       mediaFiles: 'id, stageId, [stageId+type]',
       generatedAgents: 'id, stageId',
     });
+
+    // Version 9: Add quizAttempts table for persisted quiz submissions
+    this.version(9).stores({
+      stages: 'id, updatedAt',
+      scenes: 'id, stageId, order, [stageId+order]',
+      audioFiles: 'id, createdAt',
+      imageFiles: 'id, createdAt',
+      snapshots: '++id',
+      chatSessions: 'id, stageId, [stageId+createdAt]',
+      playbackState: 'stageId',
+      stageOutlines: 'stageId',
+      mediaFiles: 'id, stageId, [stageId+type]',
+      generatedAgents: 'id, stageId',
+      quizAttempts: 'attemptId, stageId, sceneId, [stageId+sceneId], submittedAt',
+    });
   }
 }
 
@@ -350,12 +383,14 @@ export async function exportDatabase(): Promise<{
   scenes: SceneRecord[];
   chatSessions: ChatSessionRecord[];
   playbackState: PlaybackStateRecord[];
+  quizAttempts: QuizAttemptRecord[];
 }> {
   return {
     stages: await db.stages.toArray(),
     scenes: await db.scenes.toArray(),
     chatSessions: await db.chatSessions.toArray(),
     playbackState: await db.playbackState.toArray(),
+    quizAttempts: await db.quizAttempts.toArray(),
   };
 }
 
@@ -367,15 +402,17 @@ export async function importDatabase(data: {
   scenes?: SceneRecord[];
   chatSessions?: ChatSessionRecord[];
   playbackState?: PlaybackStateRecord[];
+  quizAttempts?: QuizAttemptRecord[];
 }): Promise<void> {
   await db.transaction(
     'rw',
-    [db.stages, db.scenes, db.chatSessions, db.playbackState],
+    [db.stages, db.scenes, db.chatSessions, db.playbackState, db.quizAttempts],
     async () => {
       if (data.stages) await db.stages.bulkPut(data.stages);
       if (data.scenes) await db.scenes.bulkPut(data.scenes);
       if (data.chatSessions) await db.chatSessions.bulkPut(data.chatSessions);
       if (data.playbackState) await db.playbackState.bulkPut(data.playbackState);
+      if (data.quizAttempts) await db.quizAttempts.bulkPut(data.quizAttempts);
     },
   );
   log.info('Database imported successfully');
@@ -404,6 +441,7 @@ export async function deleteStageWithRelatedData(stageId: string): Promise<void>
       db.stageOutlines,
       db.mediaFiles,
       db.generatedAgents,
+      db.quizAttempts,
     ],
     async () => {
       await db.stages.delete(stageId);
@@ -413,6 +451,7 @@ export async function deleteStageWithRelatedData(stageId: string): Promise<void>
       await db.stageOutlines.delete(stageId);
       await db.mediaFiles.where('stageId').equals(stageId).delete();
       await db.generatedAgents.where('stageId').equals(stageId).delete();
+      await db.quizAttempts.where('stageId').equals(stageId).delete();
     },
   );
 }
