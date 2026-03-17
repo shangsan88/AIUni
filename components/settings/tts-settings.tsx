@@ -19,7 +19,7 @@ interface TTSSettingsProps {
 }
 
 export function TTSSettings({ selectedProviderId }: TTSSettingsProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const ttsVoice = useSettingsStore((state) => state.ttsVoice);
   const ttsSpeed = useSettingsStore((state) => state.ttsSpeed);
@@ -70,13 +70,19 @@ export function TTSSettings({ selectedProviderId }: TTSSettingsProps) {
           return;
         }
 
+        window.speechSynthesis.cancel();
+
         const utterance = new SpeechSynthesisUtterance(testText);
         utterance.rate = ttsSpeed;
+        utterance.lang = locale || navigator.language || 'zh-CN';
         const voices = window.speechSynthesis.getVoices();
         const selectedVoice = voices.find(
           (v) => v.name === effectiveVoice || v.lang === effectiveVoice,
         );
-        if (selectedVoice) utterance.voice = selectedVoice;
+        if (selectedVoice) {
+          utterance.voice = selectedVoice;
+          utterance.lang = selectedVoice.lang || utterance.lang;
+        }
 
         await new Promise<void>((resolve, reject) => {
           utterance.onend = () => resolve();

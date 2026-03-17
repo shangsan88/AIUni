@@ -64,7 +64,7 @@ interface AudioSettingsProps {
 }
 
 export function AudioSettings({ onSave }: AudioSettingsProps = {}) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   // TTS state
   const ttsProviderId = useSettingsStore((state) => state.ttsProviderId);
@@ -270,14 +270,18 @@ export function AudioSettings({ onSave }: AudioSettingsProps = {}) {
           return;
         }
 
+        window.speechSynthesis.cancel();
+
         const utterance = new SpeechSynthesisUtterance(testText);
         utterance.rate = ttsSpeed;
+        utterance.lang = locale || navigator.language || 'zh-CN';
 
         // Try to find matching voice
         const voices = window.speechSynthesis.getVoices();
         const selectedVoice = voices.find((v) => v.name === ttsVoice || v.lang === ttsVoice);
         if (selectedVoice) {
           utterance.voice = selectedVoice;
+          utterance.lang = selectedVoice.lang || utterance.lang;
         }
 
         utterance.onend = () => {

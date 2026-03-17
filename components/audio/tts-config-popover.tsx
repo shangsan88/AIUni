@@ -14,6 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/hooks/use-i18n';
+import { useBrowserTTS } from '@/lib/hooks/use-browser-tts';
 import { useSettingsStore } from '@/lib/store/settings';
 import { getTTSVoices } from '@/lib/audio/constants';
 
@@ -40,6 +41,12 @@ export function TtsConfigPopover() {
   const setTTSVoice = useSettingsStore((s) => s.setTTSVoice);
 
   const voices = getTTSVoices(ttsProviderId);
+  const { speak: speakBrowserTTS, cancel: cancelBrowserTTS } = useBrowserTTS({
+    rate: 1.0,
+    lang: locale || (typeof navigator !== 'undefined' ? navigator.language : 'zh-CN'),
+    onEnd: () => setPreviewing(false),
+    onError: () => setPreviewing(false),
+  });
   const localizedVoices = useMemo(
     () =>
       voices.map((v) => ({
@@ -56,12 +63,18 @@ export function TtsConfigPopover() {
     if (previewing) {
       audioRef.current?.pause();
       audioRef.current = null;
+      cancelBrowserTTS();
       setPreviewing(false);
       return;
     }
 
     setPreviewing(true);
     try {
+      if (ttsProviderId === 'browser-native-tts') {
+        speakBrowserTTS('你好，欢迎来到AI课堂！让我们一起学习吧。', ttsVoice);
+        return;
+      }
+
       const providerConfig = ttsProvidersConfig[ttsProviderId];
       const res = await fetch('/api/generate/tts', {
         method: 'POST',
@@ -95,7 +108,7 @@ export function TtsConfigPopover() {
     } catch {
       setPreviewing(false);
     }
-  }, [ttsProviderId, ttsVoice, ttsProvidersConfig, previewing]);
+  }, [cancelBrowserTTS, previewing, speakBrowserTTS, ttsProviderId, ttsProvidersConfig, ttsVoice]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
