@@ -383,15 +383,17 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
             >
               {/* Voice select + preview */}
               <div className="flex items-center gap-2">
-                <GroupedSelect
-                  groups={ttsGroups}
-                  selectedGroupId={ttsProviderId}
-                  selectedItemId={ttsVoice}
-                  onSelect={(gid, iid) => {
-                    setTTSProvider(gid as TTSProviderId);
-                    setTTSVoice(iid);
-                  }}
-                />
+                <div className="flex-1 min-w-0">
+                  <GroupedSelect
+                    groups={ttsGroups}
+                    selectedGroupId={ttsProviderId}
+                    selectedItemId={ttsVoice}
+                    onSelect={(gid, iid) => {
+                      setTTSProvider(gid as TTSProviderId);
+                      setTTSVoice(iid);
+                    }}
+                  />
+                </div>
                 <button
                   onClick={handlePreview}
                   className={cn(
