@@ -86,13 +86,14 @@ function isPrivateIPv6(raw: string): boolean {
     if (v4 && isPrivateIPv4(v4)) return true;
   }
 
-  // Unspecified (::)
-  if (addr === '::' || addr === '::0' || /^0*:0*:0*:0*:0*:0*:0*:0*$/.test(expandIPv6(addr))) {
-    return true;
-  }
-
-  // Loopback (::1)
-  if (addr === '::1' || expandIPv6(addr) === '0000:0000:0000:0000:0000:0000:0000:0001') {
+  // Unspecified (::) and loopback (::1)
+  const expanded = expandIPv6(addr);
+  if (
+    addr === '::' ||
+    addr === '::0' ||
+    expanded === '0000:0000:0000:0000:0000:0000:0000:0001' ||
+    /^0+:0+:0+:0+:0+:0+:0+:0+$/.test(expanded)
+  ) {
     return true;
   }
 

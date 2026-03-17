@@ -123,6 +123,9 @@ async function decrypt(encoded: string): Promise<string> {
 // Zustand StateStorage adapter
 // ---------------------------------------------------------------------------
 
+/** Prefix added to encrypted payloads to distinguish them from plaintext JSON. */
+const ENCRYPTED_PREFIX = 'enc:';
+
 /**
  * Create an encrypted storage adapter compatible with Zustand `persist`.
  *
@@ -137,14 +140,15 @@ export function createEncryptedStorage(): StateStorage {
       const raw = localStorage.getItem(name);
       if (!raw) return null;
 
-      // If the value is not encrypted (e.g. leftover from before migration)
-      // it will start with '{' — return it as-is so Zustand can read + re-persist.
-      if (raw.startsWith('{') || raw.startsWith('[')) {
+      // If the value does not carry our encrypted prefix, it is a legacy
+      // plaintext JSON value — return it as-is so Zustand can read and
+      // re-persist (which will encrypt it on the next write).
+      if (!raw.startsWith(ENCRYPTED_PREFIX)) {
         return raw;
       }
 
       try {
-        return await decrypt(raw);
+        return await decrypt(raw.slice(ENCRYPTED_PREFIX.length));
       } catch {
         // Key mismatch or corrupted data — clear and let Zustand re-init
         localStorage.removeItem(name);
@@ -154,7 +158,7 @@ export function createEncryptedStorage(): StateStorage {
 
     async setItem(name: string, value: string): Promise<void> {
       const encrypted = await encrypt(value);
-      localStorage.setItem(name, encrypted);
+      localStorage.setItem(name, ENCRYPTED_PREFIX + encrypted);
     },
 
     async removeItem(name: string): Promise<void> {

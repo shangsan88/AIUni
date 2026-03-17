@@ -126,5 +126,5 @@ export function getClientIp(req: Request): string {
   // Next.js Request doesn't expose socket.remoteAddress; use header or fallback
   const realIp = req.headers.get('x-real-ip');
   if (realIp) return realIp;
-  return 'unknown';
+  return 'anonymous';
 }
