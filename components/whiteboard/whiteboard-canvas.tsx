@@ -160,29 +160,45 @@ function InteractiveWhiteboardCanvas({
   const [panY, setPanY] = useState(0);
   const [isPanning, setIsPanning] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
-  const [showHint, setShowHint] = useState(true);
+  const [hintTimedOut, setHintTimedOut] = useState(false);
   const panStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
   const prevElementsLengthRef = useRef(elements.length);
   const resetTimerRef = useRef<number | null>(null);
+  const hintTimerRef = useRef<number | null>(null);
+  const hintEpochRef = useRef(0);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   const isViewModified = viewZoom !== 1 || panX !== 0 || panY !== 0;
   const hasOverflow = autoFitTransform.scale < 1;
   const canPan = elements.length > 0 && (hasOverflow || isViewModified);
 
-  // Auto-hide hint after 3s or on first interaction
+  // Derive hint epoch — changes whenever hint should re-appear
+  const hintEpoch = elements.length > 0 && !isViewModified ? 1 : 0;
+
+  // Reset hintTimedOut when epoch changes (content removed or view modified)
+  if (hintEpoch === 0 && hintTimedOut) {
+    setHintTimedOut(false);
+  }
+
+  // Hint is visible when: content exists, view is at default, and auto-hide timer hasn't expired
+  const showHint = hintEpoch === 1 && !hintTimedOut;
+
+  // Auto-hide hint after 3s
   useEffect(() => {
-    if (elements.length === 0) {
-      setShowHint(true);
-      return;
-    }
-    if (isViewModified) {
-      setShowHint(false);
-      return;
-    }
-    const timer = window.setTimeout(() => setShowHint(false), 3000);
-    return () => window.clearTimeout(timer);
-  }, [elements.length, isViewModified]);
+    if (hintEpoch === 0) return;
+    const epoch = ++hintEpochRef.current;
+    hintTimerRef.current = window.setTimeout(() => {
+      if (hintEpochRef.current === epoch) {
+        setHintTimedOut(true);
+      }
+    }, 3000);
+    return () => {
+      if (hintTimerRef.current !== null) {
+        window.clearTimeout(hintTimerRef.current);
+        hintTimerRef.current = null;
+      }
+    };
+  }, [hintEpoch]);
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
