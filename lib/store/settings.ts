@@ -352,6 +352,36 @@ function ensureBuiltInProviders(state: Partial<SettingsState>): void {
   });
 }
 
+/**
+ * Ensure imageProvidersConfig includes all built-in image providers.
+ * Called on every rehydrate so newly added image providers appear automatically.
+ */
+function ensureBuiltInImageProviders(state: Partial<SettingsState>): void {
+  if (!state.imageProvidersConfig) return;
+  const defaultConfig = getDefaultImageConfig().imageProvidersConfig;
+  Object.keys(IMAGE_PROVIDERS).forEach((pid) => {
+    const providerId = pid as ImageProviderId;
+    if (!state.imageProvidersConfig![providerId]) {
+      state.imageProvidersConfig![providerId] = defaultConfig[providerId];
+    }
+  });
+}
+
+/**
+ * Ensure videoProvidersConfig includes all built-in video providers.
+ * Called on every rehydrate so newly added video providers appear automatically.
+ */
+function ensureBuiltInVideoProviders(state: Partial<SettingsState>): void {
+  if (!state.videoProvidersConfig) return;
+  const defaultConfig = getDefaultVideoConfig().videoProvidersConfig;
+  Object.keys(VIDEO_PROVIDERS).forEach((pid) => {
+    const providerId = pid as VideoProviderId;
+    if (!state.videoProvidersConfig![providerId]) {
+      state.videoProvidersConfig![providerId] = defaultConfig[providerId];
+    }
+  });
+}
+
 // Migrate from old localStorage format
 const migrateFromOldStorage = () => {
   if (typeof window === 'undefined') return null;
@@ -960,6 +990,10 @@ export const useSettingsStore = create<SettingsState>()(
         // Ensure providersConfig has all built-in providers (also in merge below)
         ensureBuiltInProviders(state);
 
+        // Ensure image/video configs have all built-in providers
+        ensureBuiltInImageProviders(state);
+        ensureBuiltInVideoProviders(state);
+
         // Migrate from old ttsModel to new ttsProviderId
         if (state.ttsModel && !state.ttsProviderId) {
           // Map old ttsModel values to new ttsProviderId
@@ -1057,6 +1091,8 @@ export const useSettingsStore = create<SettingsState>()(
       merge: (persistedState, currentState) => {
         const merged = { ...currentState, ...(persistedState as object) };
         ensureBuiltInProviders(merged as Partial<SettingsState>);
+        ensureBuiltInImageProviders(merged as Partial<SettingsState>);
+        ensureBuiltInVideoProviders(merged as Partial<SettingsState>);
         return merged as SettingsState;
       },
     },
