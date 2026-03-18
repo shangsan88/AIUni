@@ -114,7 +114,10 @@ export function tryParseJson<T>(jsonStr: string): T | null {
     // Match backslash followed by letters (LaTeX commands) inside strings
     fixed = fixed.replace(/"([^"]*?)"/g, (_match, content) => {
       // Double-escape any backslash followed by a letter (except valid JSON escapes: b, f, n, r, t, u)
-      const fixedContent = content.replace(/\\([a-eghijklmopqsvwxyzA-EGHIJKLMOPQSVWXYZ])/g, '\\\\$1');
+      const fixedContent = content.replace(
+        /\\([a-eghijklmopqsvwxyzA-EGHIJKLMOPQSVWXYZ])/g,
+        '\\\\$1',
+      );
       return `"${fixedContent}"`;
     });
 
