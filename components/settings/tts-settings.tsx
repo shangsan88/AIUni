@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -11,11 +11,7 @@ import type { TTSProviderId } from '@/lib/audio/types';
 import { Volume2, Loader2, CheckCircle2, XCircle, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createLogger } from '@/lib/logger';
-import {
-  ensureVoicesLoaded,
-  isBrowserTTSAbortError,
-  playBrowserTTSPreview,
-} from '@/lib/audio/browser-tts-preview';
+import { useTTSPreview } from '@/lib/audio/use-tts-preview';
 
 const log = createLogger('TTSSettings');
 
@@ -43,31 +39,10 @@ export function TTSSettings({ selectedProviderId }: TTSSettingsProps) {
   const isServerConfigured = !!ttsProvidersConfig[selectedProviderId]?.isServerConfigured;
 
   const [showApiKey, setShowApiKey] = useState(false);
-  const [testingTTS, setTestingTTS] = useState(false);
   const [testText, setTestText] = useState(t('settings.ttsTestTextDefault'));
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [testMessage, setTestMessage] = useState('');
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const audioUrlRef = useRef<string | null>(null);
-  const browserPreviewCancelRef = useRef<(() => void) | null>(null);
-  const testRequestIdRef = useRef(0);
-
-  const stopPreview = useCallback((resetState = true) => {
-    testRequestIdRef.current += 1;
-    browserPreviewCancelRef.current?.();
-    browserPreviewCancelRef.current = null;
-    audioRef.current?.pause();
-    if (audioRef.current) {
-      audioRef.current.src = '';
-    }
-    if (audioUrlRef.current) {
-      URL.revokeObjectURL(audioUrlRef.current);
-      audioUrlRef.current = null;
-    }
-    if (resetState) {
-      setTestingTTS(false);
-    }
-  }, []);
+  const { previewing: testingTTS, startPreview, stopPreview } = useTTSPreview();
 
   // Update test text when language changes
   useEffect(() => {
@@ -76,104 +51,30 @@ export function TTSSettings({ selectedProviderId }: TTSSettingsProps) {
 
   // Reset state when provider changes
   useEffect(() => {
-    stopPreview(false);
+    stopPreview();
     setShowApiKey(false);
-    setTestingTTS(false);
     setTestStatus('idle');
     setTestMessage('');
   }, [selectedProviderId, stopPreview]);
 
-  useEffect(() => {
-    return () => {
-      stopPreview(false);
-    };
-  }, [stopPreview]);
-
   const handleTestTTS = async () => {
     if (!testText.trim()) return;
-    const requestId = testRequestIdRef.current + 1;
-    testRequestIdRef.current = requestId;
 
-    setTestingTTS(true);
     setTestStatus('testing');
     setTestMessage('');
 
     try {
-      if (selectedProviderId === 'browser-native-tts') {
-        if (!('speechSynthesis' in window)) {
-          setTestStatus('error');
-          setTestMessage(t('settings.browserTTSNotSupported'));
-          return;
-        }
-
-        const voices = await ensureVoicesLoaded();
-        if (testRequestIdRef.current !== requestId) return;
-        if (voices.length === 0) {
-          setTestStatus('error');
-          setTestMessage(t('settings.browserTTSNoVoices'));
-          return;
-        }
-
-        const controller = playBrowserTTSPreview({
-          text: testText,
-          voice: effectiveVoice,
-          rate: ttsSpeed,
-          voices,
-        });
-        browserPreviewCancelRef.current = controller.cancel;
-        await controller.promise;
-
-        if (testRequestIdRef.current !== requestId) return;
-        setTestStatus('success');
-        setTestMessage(t('settings.ttsTestSuccess'));
-        return;
-      }
-
-      const requestBody: Record<string, unknown> = {
+      await startPreview({
         text: testText,
-        audioId: 'tts-test',
-        ttsProviderId: selectedProviderId,
-        ttsVoice: effectiveVoice,
-        ttsSpeed: ttsSpeed,
-      };
-      const apiKeyValue = ttsProvidersConfig[selectedProviderId]?.apiKey;
-      if (apiKeyValue?.trim()) requestBody.ttsApiKey = apiKeyValue;
-      const baseUrlValue = ttsProvidersConfig[selectedProviderId]?.baseUrl;
-      if (baseUrlValue?.trim()) requestBody.ttsBaseUrl = baseUrlValue;
-
-      const response = await fetch('/api/generate/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
+        providerId: selectedProviderId,
+        voice: effectiveVoice,
+        speed: ttsSpeed,
+        apiKey: ttsProvidersConfig[selectedProviderId]?.apiKey,
+        baseUrl: ttsProvidersConfig[selectedProviderId]?.baseUrl,
       });
-      const data = await response
-        .json()
-        .catch(() => ({ success: false, error: response.statusText }));
-      if (testRequestIdRef.current !== requestId) return;
-      if (response.ok && data.success) {
-        const binaryStr = atob(data.base64);
-        const bytes = new Uint8Array(binaryStr.length);
-        for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
-        const audioBlob = new Blob([bytes], { type: `audio/${data.format}` });
-        if (audioUrlRef.current) {
-          URL.revokeObjectURL(audioUrlRef.current);
-        }
-        const audioUrl = URL.createObjectURL(audioBlob);
-        audioUrlRef.current = audioUrl;
-        if (audioRef.current) {
-          audioRef.current.src = audioUrl;
-          await audioRef.current.play();
-        }
-        setTestStatus('success');
-        setTestMessage(t('settings.ttsTestSuccess'));
-      } else {
-        setTestStatus('error');
-        setTestMessage(data.error || t('settings.ttsTestFailed'));
-      }
+      setTestStatus('success');
+      setTestMessage(t('settings.ttsTestSuccess'));
     } catch (error) {
-      if (testRequestIdRef.current !== requestId || isBrowserTTSAbortError(error)) {
-        return;
-      }
       log.error('TTS test failed:', error);
       setTestStatus('error');
       setTestMessage(
@@ -181,11 +82,6 @@ export function TTSSettings({ selectedProviderId }: TTSSettingsProps) {
           ? `${t('settings.ttsTestFailed')}: ${error.message}`
           : t('settings.ttsTestFailed'),
       );
-    } finally {
-      if (testRequestIdRef.current === requestId) {
-        browserPreviewCancelRef.current = null;
-        setTestingTTS(false);
-      }
     }
   };
 
@@ -328,8 +224,6 @@ export function TTSSettings({ selectedProviderId }: TTSSettingsProps) {
           </div>
         </div>
       )}
-
-      <audio ref={audioRef} className="hidden" />
     </div>
   );
 }

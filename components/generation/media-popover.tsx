@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useMemo, Fragment, useEffect } from 'react';
+import { useState, useCallback, useMemo, Fragment } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   Image as ImageIcon,
@@ -29,11 +29,7 @@ import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useSettingsStore } from '@/lib/store/settings';
-import {
-  ensureVoicesLoaded,
-  isBrowserTTSAbortError,
-  playBrowserTTSPreview,
-} from '@/lib/audio/browser-tts-preview';
+import { useTTSPreview } from '@/lib/audio/use-tts-preview';
 import { IMAGE_PROVIDERS } from '@/lib/media/image-providers';
 import { VIDEO_PROVIDERS } from '@/lib/media/video-providers';
 import { TTS_PROVIDERS, getTTSVoices } from '@/lib/audio/constants';
@@ -81,10 +77,7 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
   const { t, locale } = useI18n();
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('image');
-  const [previewing, setPreviewing] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const browserPreviewCancelRef = useRef<(() => void) | null>(null);
-  const previewRequestIdRef = useRef(0);
+  const { previewing, startPreview, stopPreview } = useTTSPreview();
 
   // ─── Store ───
   const imageGenerationEnabled = useSettingsStore((s) => s.imageGenerationEnabled);
@@ -188,112 +181,37 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
     [ttsProviderId, locale],
   );
 
-  const stopPreview = useCallback((resetState = true) => {
-    previewRequestIdRef.current += 1;
-    browserPreviewCancelRef.current?.();
-    browserPreviewCancelRef.current = null;
-    audioRef.current?.pause();
-    audioRef.current = null;
-    if (resetState) {
-      setPreviewing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      stopPreview(false);
-    };
-  }, [stopPreview]);
-
   // TTS preview
   const handlePreview = useCallback(async () => {
     if (previewing) {
       stopPreview();
       return;
     }
-
-    const requestId = previewRequestIdRef.current + 1;
-    previewRequestIdRef.current = requestId;
-    const previewText = t('settings.ttsTestTextDefault');
-
-    setPreviewing(true);
     try {
-      if (ttsProviderId === 'browser-native-tts') {
-        if (!('speechSynthesis' in window)) {
-          throw new Error(t('settings.browserTTSNotSupported'));
-        }
-
-        const voices = await ensureVoicesLoaded();
-        if (voices.length === 0) {
-          throw new Error(t('settings.browserTTSNoVoices'));
-        }
-
-        const controller = playBrowserTTSPreview({
-          text: previewText,
-          voice: ttsVoice,
-          rate: ttsSpeed,
-          voices,
-        });
-        browserPreviewCancelRef.current = controller.cancel;
-        await controller.promise;
-        if (previewRequestIdRef.current === requestId) {
-          browserPreviewCancelRef.current = null;
-          setPreviewing(false);
-        }
-        return;
-      }
-
       const providerConfig = ttsProvidersConfig[ttsProviderId];
-      const res = await fetch('/api/generate/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: previewText,
-          audioId: 'preview',
-          ttsProviderId,
-          ttsVoice,
-          ttsSpeed,
-          ttsApiKey: providerConfig?.apiKey,
-          ttsBaseUrl: providerConfig?.baseUrl,
-        }),
+      await startPreview({
+        text: t('settings.ttsTestTextDefault'),
+        providerId: ttsProviderId,
+        voice: ttsVoice,
+        speed: ttsSpeed,
+        apiKey: providerConfig?.apiKey,
+        baseUrl: providerConfig?.baseUrl,
       });
-      if (!res.ok) throw new Error('TTS failed');
-      const data = await res.json();
-      if (data.base64) {
-        const audio = new Audio(`data:audio/${data.format || 'mp3'};base64,${data.base64}`);
-        audioRef.current = audio;
-        audio.onended = () => {
-          if (previewRequestIdRef.current === requestId) {
-            setPreviewing(false);
-            audioRef.current = null;
-          }
-        };
-        audio.onerror = () => {
-          if (previewRequestIdRef.current === requestId) {
-            setPreviewing(false);
-            audioRef.current = null;
-          }
-        };
-        await audio.play();
-        return;
-      }
     } catch (error) {
-      if (previewRequestIdRef.current === requestId) {
-        browserPreviewCancelRef.current = null;
-        setPreviewing(false);
-      }
-      if (!isBrowserTTSAbortError(error)) {
-        const message =
-          error instanceof Error && error.message ? error.message : t('settings.ttsTestFailed');
-        toast.error(message);
-      }
-      return;
+      const message =
+        error instanceof Error && error.message ? error.message : t('settings.ttsTestFailed');
+      toast.error(message);
     }
-
-    if (previewRequestIdRef.current === requestId) {
-      setPreviewing(false);
-    }
-  }, [previewing, stopPreview, t, ttsProviderId, ttsProvidersConfig, ttsSpeed, ttsVoice]);
+  }, [
+    previewing,
+    startPreview,
+    stopPreview,
+    t,
+    ttsProviderId,
+    ttsProvidersConfig,
+    ttsSpeed,
+    ttsVoice,
+  ]);
 
   // ASR: only available providers
   const asrGroups = useMemo(
