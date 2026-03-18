@@ -13,7 +13,7 @@ import {
 } from '@/lib/generation/scene-generator';
 import type { AICallFn } from '@/lib/generation/pipeline-types';
 import { createLogger } from '@/lib/logger';
-import { parseModelString } from '@/lib/ai/providers';
+import { parseModelString, isProviderKeyRequired } from '@/lib/ai/providers';
 import { resolveApiKey } from '@/lib/server/provider-config';
 import { resolveModel } from '@/lib/server/resolve-model';
 import { persistClassroom } from '@/lib/server/classroom-storage';
@@ -105,7 +105,7 @@ export async function generateClassroom(
   // Fail fast if the resolved provider has no API key configured
   const { providerId } = parseModelString(modelString);
   const apiKey = resolveApiKey(providerId);
-  if (!apiKey) {
+  if (isProviderKeyRequired(providerId) && !apiKey) {
     throw new Error(
       `No API key configured for provider "${providerId}". ` +
         `Set the appropriate key in .env.local or server-providers.yml (e.g. ${providerId.toUpperCase()}_API_KEY).`,

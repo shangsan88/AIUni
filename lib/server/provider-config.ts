@@ -48,6 +48,7 @@ const LLM_ENV_MAP: Record<string, string> = {
   GLM: 'glm',
   SILICONFLOW: 'siliconflow',
   DOUBAO: 'doubao',
+  OLLAMA: 'ollama',
 };
 
 const TTS_ENV_MAP: Record<string, string> = {
@@ -125,9 +126,9 @@ function loadEnvSection(
   // First, add everything from YAML as defaults
   if (yamlSection) {
     for (const [id, entry] of Object.entries(yamlSection)) {
-      if (entry?.apiKey) {
+      if (entry?.apiKey || entry?.baseUrl) {
         result[id] = {
-          apiKey: entry.apiKey,
+          apiKey: entry.apiKey || '',
           baseUrl: entry.baseUrl,
           models: entry.models,
           proxy: entry.proxy,
@@ -156,9 +157,10 @@ function loadEnvSection(
       continue;
     }
 
-    if (!envApiKey) continue;
+    // Activate on API key OR base URL (supports keyless providers like Ollama)
+    if (!envApiKey && !envBaseUrl) continue;
     result[providerId] = {
-      apiKey: envApiKey,
+      apiKey: envApiKey || '',
       baseUrl: envBaseUrl,
       models: envModels,
     };

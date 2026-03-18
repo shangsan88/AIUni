@@ -14,7 +14,7 @@
 
 import { NextRequest } from 'next/server';
 import { statelessGenerate } from '@/lib/orchestration/stateless-generate';
-import { getModel, parseModelString } from '@/lib/ai/providers';
+import { getModel, parseModelString, isProviderKeyRequired } from '@/lib/ai/providers';
 import { resolveApiKey, resolveBaseUrl, resolveProxy } from '@/lib/server/provider-config';
 import type { StatelessChatRequest, StatelessEvent } from '@/lib/types/chat';
 import type { ThinkingConfig } from '@/lib/types/provider';
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
       : resolveBaseUrl(providerId, body.baseUrl);
     const proxy = resolveProxy(providerId);
 
-    if (!effectiveApiKey) {
+    if (isProviderKeyRequired(providerId) && !effectiveApiKey) {
       return apiError('MISSING_API_KEY', 401, 'API Key is required');
     }
 
