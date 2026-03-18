@@ -25,7 +25,6 @@ export function resolveModel(params: {
   apiKey?: string;
   baseUrl?: string;
   providerType?: string;
-  requiresApiKey?: boolean;
 }): ResolvedModel {
   const modelString = params.modelString || process.env.DEFAULT_MODEL || 'gpt-4o-mini';
   const { providerId, modelId } = parseModelString(modelString);
@@ -50,7 +49,6 @@ export function resolveModel(params: {
     baseUrl,
     proxy,
     providerType: params.providerType as 'openai' | 'anthropic' | 'google' | undefined,
-    requiresApiKey: params.requiresApiKey,
   });
 
   return { model, modelInfo, modelString };
@@ -59,7 +57,9 @@ export function resolveModel(params: {
 /**
  * Resolve a language model from standard request headers.
  *
- * Reads: x-model, x-api-key, x-base-url, x-provider-type, x-requires-api-key
+ * Reads: x-model, x-api-key, x-base-url, x-provider-type
+ * Note: requiresApiKey is derived server-side from the provider registry,
+ * never from client headers, to prevent auth bypass.
  */
 export function resolveModelFromHeaders(req: NextRequest): ResolvedModel {
   return resolveModel({
@@ -67,6 +67,5 @@ export function resolveModelFromHeaders(req: NextRequest): ResolvedModel {
     apiKey: req.headers.get('x-api-key') || undefined,
     baseUrl: req.headers.get('x-base-url') || undefined,
     providerType: req.headers.get('x-provider-type') || undefined,
-    requiresApiKey: req.headers.get('x-requires-api-key') === 'true' ? true : undefined,
   });
 }
