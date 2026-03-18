@@ -27,6 +27,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/hooks/use-i18n';
+import { useBrowserTTS } from '@/lib/hooks/use-browser-tts';
 import { useSettingsStore } from '@/lib/store/settings';
 import { IMAGE_PROVIDERS } from '@/lib/media/image-providers';
 import { VIDEO_PROVIDERS } from '@/lib/media/video-providers';
@@ -134,6 +135,12 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
   ) => !needsKey || !!configs[id]?.apiKey || !!configs[id]?.isServerConfigured;
 
   const ttsSpeedRange = TTS_PROVIDERS[ttsProviderId]?.speedRange;
+  const { speak: speakBrowserTTS, cancel: cancelBrowserTTS } = useBrowserTTS({
+    rate: ttsSpeed,
+    lang: locale || (typeof navigator !== 'undefined' ? navigator.language : 'zh-CN'),
+    onEnd: () => setPreviewing(false),
+    onError: () => setPreviewing(false),
+  });
 
   // ─── Grouped select data (only available providers) ───
   const imageGroups = useMemo(
@@ -145,10 +152,14 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
           groupName: p.name,
           groupIcon: IMAGE_PROVIDER_ICONS[p.id],
           available: true,
-          items: [...p.models, ...(imageProvidersConfig[p.id]?.customModels || [])].map((m) => ({
-            id: m.id,
-            name: m.name,
-          })),
+          items: Array.from(
+            new Map(
+              [...p.models, ...(imageProvidersConfig[p.id]?.customModels || [])].map((m) => [
+                m.id,
+                { id: m.id, name: m.name },
+              ]),
+            ).values(),
+          ),
         })),
     [imageProvidersConfig],
   );
@@ -162,10 +173,14 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
           groupName: p.name,
           groupIcon: VIDEO_PROVIDER_ICONS[p.id],
           available: true,
-          items: [...p.models, ...(videoProvidersConfig[p.id]?.customModels || [])].map((m) => ({
-            id: m.id,
-            name: m.name,
-          })),
+          items: Array.from(
+            new Map(
+              [...p.models, ...(videoProvidersConfig[p.id]?.customModels || [])].map((m) => [
+                m.id,
+                { id: m.id, name: m.name },
+              ]),
+            ).values(),
+          ),
         })),
     [videoProvidersConfig],
   );
@@ -185,11 +200,17 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
     if (previewing) {
       audioRef.current?.pause();
       audioRef.current = null;
+      cancelBrowserTTS();
       setPreviewing(false);
       return;
     }
     setPreviewing(true);
     try {
+      if (ttsProviderId === 'browser-native-tts') {
+        speakBrowserTTS('你好，欢迎来到AI课堂！让我们一起学习吧。', ttsVoice);
+        return;
+      }
+
       const providerConfig = ttsProvidersConfig[ttsProviderId];
       const res = await fetch('/api/generate/tts', {
         method: 'POST',
@@ -221,7 +242,7 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
     } catch {
       setPreviewing(false);
     }
-  }, [ttsProviderId, ttsVoice, ttsProvidersConfig, previewing]);
+  }, [cancelBrowserTTS, previewing, speakBrowserTTS, ttsProviderId, ttsProvidersConfig, ttsVoice]);
 
   // ASR: only available providers
   const asrGroups = useMemo(
