@@ -4,7 +4,9 @@ import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStageStore } from '@/lib/store';
 import { useCanvasStore } from '@/lib/store/canvas';
+import { useWhiteboardHistoryStore } from '@/lib/store/whiteboard-history';
 import { ScreenElement } from '@/components/slide-renderer/Editor/ScreenElement';
+import { elementFingerprint } from '@/lib/utils/element-fingerprint';
 import type { PPTElement, PPTLineElement } from '@/lib/types/slides';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { getElementRange } from '@/lib/utils/element';
@@ -171,27 +173,21 @@ function InteractiveWhiteboardCanvas({
   const isViewModified = viewZoom !== 1 || panX !== 0 || panY !== 0;
   const hasOverflow = autoFitTransform.scale < 1;
   const canPan = elements.length > 0 && (hasOverflow || isViewModified);
-
-  // Derive hint epoch — changes whenever hint should re-appear
   const hintEpoch = elements.length > 0 && !isViewModified ? 1 : 0;
-
-  // Reset hintTimedOut when epoch changes (content removed or view modified)
-  if (hintEpoch === 0 && hintTimedOut) {
-    setHintTimedOut(false);
-  }
-
-  // Hint is visible when: content exists, view is at default, and auto-hide timer hasn't expired
   const showHint = hintEpoch === 1 && !hintTimedOut;
 
-  // Auto-hide hint after 3s
   useEffect(() => {
-    if (hintEpoch === 0) return;
+    if (hintEpoch === 0) {
+      return;
+    }
+
     const epoch = ++hintEpochRef.current;
     hintTimerRef.current = window.setTimeout(() => {
       if (hintEpochRef.current === epoch) {
         setHintTimedOut(true);
       }
     }, 3000);
+
     return () => {
       if (hintTimerRef.current !== null) {
         window.clearTimeout(hintTimerRef.current);
@@ -202,11 +198,13 @@ function InteractiveWhiteboardCanvas({
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (e.button !== 0) return;
-      if (!canPan) return;
+      if (e.button !== 0 || !canPan) {
+        return;
+      }
 
       e.preventDefault();
       setIsPanning(true);
+      setHintTimedOut(false);
       panStartRef.current = { x: e.clientX, y: e.clientY, panX, panY };
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     },
@@ -215,7 +213,9 @@ function InteractiveWhiteboardCanvas({
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
-      if (!isPanning) return;
+      if (!isPanning) {
+        return;
+      }
 
       const dx = e.clientX - panStartRef.current.x;
       const dy = e.clientY - panStartRef.current.y;
@@ -238,6 +238,7 @@ function InteractiveWhiteboardCanvas({
   const resetView = useCallback((animate: boolean) => {
     setIsPanning(false);
     setIsResetting(animate);
+    setHintTimedOut(false);
     setViewZoom(1);
     setPanX(0);
     setPanY(0);
@@ -259,12 +260,17 @@ function InteractiveWhiteboardCanvas({
 
   useEffect(() => {
     const el = canvasRef.current;
-    if (!el) return;
+    if (!el) {
+      return;
+    }
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      if (elements.length === 0) return;
+      if (elements.length === 0) {
+        return;
+      }
 
+      setHintTimedOut(false);
       const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
       setViewZoom((prev) => Math.min(5, Math.max(0.2, prev * zoomFactor)));
     };
@@ -417,7 +423,7 @@ function InteractiveWhiteboardCanvas({
 }
 
 /**
- * Whiteboard canvas with pan, zoom, and auto-fit support.
+ * Whiteboard canvas with pan, zoom, auto-fit, and history auto-snapshot support.
  */
 export function WhiteboardCanvas() {
   const { t } = useI18n();
@@ -427,7 +433,54 @@ export function WhiteboardCanvas() {
   const [containerScale, setContainerScale] = useState(1);
 
   const whiteboard = stage?.whiteboard?.[0];
-  const elements = useMemo(() => whiteboard?.elements || [], [whiteboard?.elements]);
+  const rawElements = whiteboard?.elements;
+  const elements = useMemo(() => rawElements ?? [], [rawElements]);
+  const elementsKey = useMemo(() => elementFingerprint(elements), [elements]);
+  const elementsRef = useRef(elements);
+  const snapshotTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    elementsRef.current = elements;
+  }, [elements]);
+
+  useEffect(() => {
+    if (snapshotTimerRef.current) {
+      clearTimeout(snapshotTimerRef.current);
+      snapshotTimerRef.current = null;
+    }
+
+    if (elements.length === 0 || isClearing) {
+      return;
+    }
+
+    const historyStore = useWhiteboardHistoryStore.getState();
+    if (historyStore.restoredKey && historyStore.restoredKey === elementsKey) {
+      historyStore.setRestoredKey(null);
+      return;
+    }
+
+    snapshotTimerRef.current = setTimeout(() => {
+      const current = elementsRef.current;
+      if (current.length > 0) {
+        useWhiteboardHistoryStore.getState().pushSnapshot(current);
+      }
+    }, 2000);
+
+    return () => {
+      if (snapshotTimerRef.current) {
+        clearTimeout(snapshotTimerRef.current);
+        snapshotTimerRef.current = null;
+      }
+    };
+  }, [elements.length, elementsKey, isClearing]);
+
+  useEffect(() => {
+    return () => {
+      if (snapshotTimerRef.current) {
+        clearTimeout(snapshotTimerRef.current);
+      }
+    };
+  }, []);
 
   const canvasWidth = 1000;
   const canvasHeight = 562.5;
@@ -435,7 +488,9 @@ export function WhiteboardCanvas() {
 
   const updateContainerScale = useCallback(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container) {
+      return;
+    }
 
     const { clientWidth, clientHeight } = container;
     const scaleX = clientWidth / canvasWidth;
@@ -445,7 +500,9 @@ export function WhiteboardCanvas() {
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container) {
+      return;
+    }
 
     const observer = new ResizeObserver(updateContainerScale);
     observer.observe(container);
@@ -455,7 +512,9 @@ export function WhiteboardCanvas() {
   }, [updateContainerScale]);
 
   const autoFitTransform = useMemo(() => {
-    if (elements.length === 0) return { scale: 1, tx: 0, ty: 0 };
+    if (elements.length === 0) {
+      return { scale: 1, tx: 0, ty: 0 };
+    }
 
     let minX = Infinity;
     let minY = Infinity;
