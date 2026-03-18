@@ -575,6 +575,7 @@ export const settingsZhCN = {
     voice: '音色',
     speed: '语速',
     language: '语言',
+    noProviderConfigured: '未配置可用服务商',
   },
 } as const;
 
@@ -1165,5 +1166,6 @@ export const settingsEnUS = {
     voice: 'Voice',
     speed: 'Speed',
     language: 'Language',
+    noProviderConfigured: 'No provider configured',
   },
 } as const;

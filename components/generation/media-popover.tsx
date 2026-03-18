@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useSettingsStore } from '@/lib/store/settings';
@@ -307,6 +308,8 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
               label={t('media.imageCapability')}
               enabled={imageGenerationEnabled}
               onToggle={setImageGenerationEnabled}
+              disabled={imageGroups.length === 0}
+              disabledReason={t('media.noProviderConfigured')}
             >
               <GroupedSelect
                 groups={imageGroups}
@@ -326,6 +329,8 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
               label={t('media.videoCapability')}
               enabled={videoGenerationEnabled}
               onToggle={setVideoGenerationEnabled}
+              disabled={videoGroups.length === 0}
+              disabledReason={t('media.noProviderConfigured')}
             >
               <GroupedSelect
                 groups={videoGroups}
@@ -415,6 +420,8 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
               label={t('media.asrCapability')}
               enabled={asrEnabled}
               onToggle={setASREnabled}
+              disabled={asrGroups.length === 0}
+              disabledReason={t('media.noProviderConfigured')}
             >
               <GroupedSelect
                 groups={asrGroups}
@@ -453,38 +460,58 @@ function TabPanel({
   label,
   enabled,
   onToggle,
+  disabled,
+  disabledReason,
   children,
 }: {
   icon: LucideIcon;
   label: string;
   enabled: boolean;
   onToggle: (v: boolean) => void;
+  disabled?: boolean;
+  disabledReason?: string;
   children?: React.ReactNode;
 }) {
+  const switchEl = (
+    <Switch
+      checked={enabled}
+      onCheckedChange={onToggle}
+      disabled={disabled}
+      className="scale-[0.85] origin-right"
+    />
+  );
+
   return (
     <div className="space-y-2.5">
       <div className="flex items-center gap-2.5">
         <Icon
           className={cn(
             'size-4 shrink-0 transition-colors',
-            enabled ? 'text-violet-600 dark:text-violet-400' : 'text-muted-foreground/50',
+            disabled
+              ? 'text-muted-foreground/30'
+              : enabled
+                ? 'text-violet-600 dark:text-violet-400'
+                : 'text-muted-foreground/50',
           )}
         />
         <span
           className={cn(
             'flex-1 text-sm font-medium transition-colors',
-            !enabled && 'text-muted-foreground',
+            (disabled || !enabled) && 'text-muted-foreground',
           )}
         >
           {label}
         </span>
-        <Switch
-          checked={enabled}
-          onCheckedChange={onToggle}
-          className="scale-[0.85] origin-right"
-        />
+        {disabled && disabledReason ? (
+          <Tooltip>
+            <TooltipTrigger asChild>{switchEl}</TooltipTrigger>
+            <TooltipContent side="top">{disabledReason}</TooltipContent>
+          </Tooltip>
+        ) : (
+          switchEl
+        )}
       </div>
-      {enabled && children}
+      {enabled && !disabled && children}
     </div>
   );
 }
