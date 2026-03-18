@@ -184,19 +184,62 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
   // TTS preview
   const handlePreview = useCallback(async () => {
     if (previewing) {
-      audioRef.current?.pause();
-      audioRef.current = null;
+      // Stop either audio or browser TTS
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      if (ttsProviderId === 'browser-native-tts' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
       setPreviewing(false);
       return;
     }
+
     setPreviewing(true);
+
+    // Handle browser-native TTS separately
+    if (ttsProviderId === 'browser-native-tts') {
+      try {
+        if (!window.speechSynthesis) {
+          throw new Error('Browser does not support Web Speech API');
+        }
+        const previewText = t('media.ttsPreviewText');
+        const utterance = new SpeechSynthesisUtterance(previewText);
+        utterance.lang = locale === 'en-US' ? 'en-US' : 'zh-CN';
+        utterance.rate = ttsSpeed;
+
+        // Set voice if not default
+        if (ttsVoice && ttsVoice !== 'default') {
+          const voices = window.speechSynthesis.getVoices();
+          const voice = voices.find((v) => v.voiceURI === ttsVoice || v.name === ttsVoice);
+          if (voice) {
+            utterance.voice = voice;
+          }
+        }
+
+        utterance.onend = () => {
+          setPreviewing(false);
+        };
+        utterance.onerror = () => {
+          setPreviewing(false);
+        };
+
+        window.speechSynthesis.speak(utterance);
+      } catch {
+        setPreviewing(false);
+      }
+      return;
+    }
+
+    // Server-based TTS providers
     try {
       const providerConfig = ttsProvidersConfig[ttsProviderId];
       const res = await fetch('/api/generate/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text: '你好，欢迎来到AI课堂！让我们一起学习吧。',
+          text: t('media.ttsPreviewText'),
           audioId: 'preview',
           ttsProviderId,
           ttsVoice,
@@ -222,7 +265,7 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
     } catch {
       setPreviewing(false);
     }
-  }, [ttsProviderId, ttsVoice, ttsProvidersConfig, previewing]);
+  }, [t, locale, ttsProviderId, ttsVoice, ttsSpeed, ttsProvidersConfig, previewing]);
 
   // ASR: only available providers
   const asrGroups = useMemo(
