@@ -1093,6 +1093,7 @@ export const settingsEnUS = {
     providerKling: 'Kling (Kuaishou)',
     providerVeo: 'Veo (Google)',
     providerSora: 'Sora (OpenAI)',
+    providerGrokVideo: 'Grok Video (xAI)',
     testVideoGeneration: 'Test Video Generation',
     testVideoConnectivity: 'Test Connection',
     videoConnectivitySuccess: 'Video service connected successfully',
