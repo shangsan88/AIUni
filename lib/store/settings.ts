@@ -685,9 +685,7 @@ export const useSettingsStore = create<SettingsState>()(
                   // entries and append server-only models with basic info
                   let filteredModels = currentModels;
                   if (info.models?.length) {
-                    const builtInMatched = currentModels.filter((m) =>
-                      info.models!.includes(m.id),
-                    );
+                    const builtInMatched = currentModels.filter((m) => info.models!.includes(m.id));
                     const builtInIds = new Set(currentModels.map((m) => m.id));
                     const serverOnly = info.models
                       .filter((id) => !builtInIds.has(id))
