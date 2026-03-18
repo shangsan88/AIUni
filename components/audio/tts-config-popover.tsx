@@ -72,9 +72,7 @@ export function TtsConfigPopover() {
 
         const utterance = new SpeechSynthesisUtterance('你好，欢迎来到AI课堂！让我们一起学习吧。');
         const voices = window.speechSynthesis.getVoices();
-        const selectedVoice = voices.find(
-          (v) => v.name === ttsVoice || v.lang === ttsVoice,
-        );
+        const selectedVoice = voices.find((v) => v.name === ttsVoice || v.lang === ttsVoice);
         if (selectedVoice) utterance.voice = selectedVoice;
 
         utterance.onend = () => {

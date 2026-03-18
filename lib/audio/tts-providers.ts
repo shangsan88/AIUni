@@ -279,7 +279,7 @@ async function generateQwenTTS(config: TTSModelConfig, text: string): Promise<TT
       model: 'qwen3-tts-flash',
       input: {
         text,
-        voice: config.voice || "Cherry",
+        voice: config.voice || 'Cherry',
         language_type: 'Chinese', // Default to Chinese, can be made configurable
       },
       parameters: {
