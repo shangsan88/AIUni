@@ -306,11 +306,8 @@ export function CanvasToolbar({
               )}
               aria-label={engineState === 'playing' ? 'Pause' : 'Play'}
             >
-              {engineState === 'playing' ? (
-                <Pause className="w-3.5 h-3.5" />
-              ) : (
-                <Play className="w-3.5 h-3.5 ml-px" />
-              )}
+              <Pause className={cn('w-3.5 h-3.5', engineState !== 'playing' && 'hidden')} />
+              <Play className={cn('w-3.5 h-3.5 ml-px', engineState === 'playing' && 'hidden')} />
             </button>
           ) : null}
 

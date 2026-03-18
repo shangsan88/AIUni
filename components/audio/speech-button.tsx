@@ -84,26 +84,21 @@ export function SpeechButton({
             />
           )}
 
-          {isProcessing ? (
-            <Loader2 className={cn(iconSize, 'animate-spin')} />
-          ) : isRecording ? (
-            /* Mini equalizer bars */
-            <span className="flex items-center gap-[2.5px] relative z-10">
-              {[0, 1, 2].map((i) => (
-                <span
-                  key={i}
-                  className="rounded-full bg-white"
-                  style={{
-                    width: isMd ? 2.5 : 2,
-                    animation: `speech-bar ${0.4 + i * 0.15}s ease-in-out ${i * 0.1}s infinite alternate`,
-                    height: 3,
-                  }}
-                />
-              ))}
-            </span>
-          ) : (
-            <Mic className={cn(iconSize, 'relative z-10')} />
-          )}
+          <Loader2 className={cn(iconSize, 'animate-spin', !isProcessing && 'hidden')} />
+          <span className={cn('flex items-center gap-[2.5px] relative z-10', (!isRecording || isProcessing) && 'hidden')}>
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="rounded-full bg-white"
+                style={{
+                  width: isMd ? 2.5 : 2,
+                  animation: `speech-bar ${0.4 + i * 0.15}s ease-in-out ${i * 0.1}s infinite alternate`,
+                  height: 3,
+                }}
+              />
+            ))}
+          </span>
+          <Mic className={cn(iconSize, 'relative z-10', (isProcessing || isRecording) && 'hidden')} />
 
           {/* Injected keyframes */}
           <style jsx>{`

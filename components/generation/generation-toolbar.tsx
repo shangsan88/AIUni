@@ -432,15 +432,14 @@ function ModelSelectorPopover({
                   'ring-violet-300 dark:ring-violet-700 bg-violet-50 dark:bg-violet-950/20',
               )}
             >
-              {currentProviderConfig?.icon ? (
+              {currentProviderConfig?.icon && (
                 <img
                   src={currentProviderConfig.icon}
                   alt={currentProviderConfig.name}
-                  className="size-4 rounded-sm"
+                  className={cn('size-4 rounded-sm', !currentProviderConfig?.icon && 'hidden')}
                 />
-              ) : (
-                <Bot className="size-3.5 text-muted-foreground" />
               )}
+              <Bot className={cn('size-3.5 text-muted-foreground', currentProviderConfig?.icon && 'hidden')} />
             </button>
           </PopoverTrigger>
         </TooltipTrigger>
@@ -471,15 +470,14 @@ function ModelSelectorPopover({
                     isActive ? 'bg-violet-50/50 dark:bg-violet-950/10' : 'hover:bg-muted/50',
                   )}
                 >
-                  {provider.icon ? (
+                  {provider.icon && (
                     <img
                       src={provider.icon}
                       alt={provider.name}
-                      className="size-5 rounded-sm shrink-0"
+                      className={cn('size-5 rounded-sm shrink-0', !provider.icon && 'hidden')}
                     />
-                  ) : (
-                    <Bot className="size-5 text-muted-foreground shrink-0" />
                   )}
+                  <Bot className={cn('size-5 text-muted-foreground shrink-0', provider.icon && 'hidden')} />
                   <div className="flex-1 min-w-0">
                     <span className="text-sm font-medium">{provider.name}</span>
                     {provider.isServerConfigured && (

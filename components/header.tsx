@@ -158,9 +158,9 @@ export function Header({ currentSceneTitle }: HeaderProps) {
               }}
               className="p-2 rounded-full text-gray-400 dark:text-gray-500 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 hover:shadow-sm transition-all group"
             >
-              {theme === 'light' && <Sun className="w-4 h-4" />}
-              {theme === 'dark' && <Moon className="w-4 h-4" />}
-              {theme === 'system' && <Monitor className="w-4 h-4" />}
+              <Sun className={cn('w-4 h-4', theme !== 'light' && 'hidden')} />
+              <Moon className={cn('w-4 h-4', theme !== 'dark' && 'hidden')} />
+              <Monitor className={cn('w-4 h-4', theme !== 'system' && 'hidden')} />
             </button>
             {themeOpen && (
               <div className="absolute top-full mt-2 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-50 min-w-[140px]">

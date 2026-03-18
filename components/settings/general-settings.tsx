@@ -16,6 +16,7 @@ import {
 import { Loader2, Trash2, AlertTriangle } from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { clearDatabase } from '@/lib/utils/database';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { createLogger } from '@/lib/logger';
 
@@ -166,11 +167,8 @@ export function GeneralSettings() {
               disabled={!isConfirmValid || clearing}
               onClick={handleClearCache}
             >
-              {clearing ? (
-                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-              ) : (
-                <Trash2 className="w-4 h-4 mr-1.5" />
-              )}
+              <Loader2 className={cn('w-4 h-4 mr-1.5 animate-spin', !clearing && 'hidden')} />
+              <Trash2 className={cn('w-4 h-4 mr-1.5', clearing && 'hidden')} />
               {t('settings.clearCacheButton')}
             </Button>
           </AlertDialogFooter>

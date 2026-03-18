@@ -166,11 +166,8 @@ export function TtsConfigPopover() {
                     : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground',
                 )}
               >
-                {previewing ? (
-                  <Loader2 className="size-3 animate-spin" />
-                ) : (
-                  <Play className="size-3" />
-                )}
+                <Loader2 className={cn('size-3 animate-spin', !previewing && 'hidden')} />
+                <Play className={cn('size-3', previewing && 'hidden')} />
                 {previewing ? t('toolbar.ttsPreviewing') : t('toolbar.ttsPreview')}
               </button>
             </div>
