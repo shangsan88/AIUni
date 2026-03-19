@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
+import { toast } from 'sonner';
 import { Bot, Check, ChevronLeft, Globe, Paperclip, FileText, X, Globe2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -69,6 +70,14 @@ export function GenerationToolbar({
     const cfg = webSearchProvidersConfig[provider.id];
     return !provider.requiresApiKey || !!cfg?.apiKey || !!cfg?.isServerConfigured;
   });
+
+  // Check if the *selected* provider can actually execute a search
+  const isSelectedProviderUsable = (() => {
+    const provider = WEB_SEARCH_PROVIDERS[webSearchProviderId];
+    if (!provider) return false;
+    const cfg = webSearchProvidersConfig[provider.id];
+    return !provider.requiresApiKey || !!cfg?.apiKey || !!cfg?.isServerConfigured;
+  })();
 
   // Configured LLM providers (only those with valid credentials + models + endpoint)
   const configuredProviders = providersConfig
@@ -290,7 +299,13 @@ export function GenerationToolbar({
           <PopoverContent align="start" className="w-64 p-3 space-y-3">
             {/* Toggle */}
             <button
-              onClick={() => onWebSearchChange(!webSearch)}
+              onClick={() => {
+                if (!webSearch && !isSelectedProviderUsable) {
+                  toast.warning(t('toolbar.webSearchProviderUnavailable'));
+                  return;
+                }
+                onWebSearchChange(!webSearch);
+              }}
               className={cn(
                 'w-full flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-all',
                 webSearch

@@ -12,6 +12,7 @@
 import { proxyFetch } from '@/lib/server/proxy-fetch';
 import type { WebSearchResult, WebSearchSource } from '@/lib/types/web-search';
 import { createLogger } from '@/lib/logger';
+import { normalizeWebSearchQuery } from './utils';
 
 const log = createLogger('BaiduSearch');
 
@@ -192,7 +193,8 @@ export async function searchWithBaidu(params: {
   maxResults?: number;
   subSources?: { webSearch?: boolean; baike?: boolean; scholar?: boolean };
 }): Promise<WebSearchResult> {
-  const { query, apiKey, maxResults = 10 } = params;
+  const { query: rawQuery, apiKey, maxResults = 10 } = params;
+  const query = normalizeWebSearchQuery(rawQuery);
   const sub = {
     webSearch: params.subSources?.webSearch ?? true,
     baike: params.subSources?.baike ?? true,

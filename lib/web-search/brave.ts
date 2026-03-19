@@ -7,6 +7,7 @@
 
 import { proxyFetch } from '@/lib/server/proxy-fetch';
 import type { WebSearchResult, WebSearchSource } from '@/lib/types/web-search';
+import { normalizeWebSearchQuery } from './utils';
 
 const BRAVE_SEARCH_URL = 'https://search.brave.com/search';
 
@@ -92,7 +93,8 @@ export async function searchWithBrave(params: {
   query: string;
   maxResults?: number;
 }): Promise<WebSearchResult> {
-  const { query, maxResults = 5 } = params;
+  const { query: rawQuery, maxResults = 5 } = params;
+  const query = normalizeWebSearchQuery(rawQuery);
 
   const url = `${BRAVE_SEARCH_URL}?q=${encodeURIComponent(query)}`;
 
