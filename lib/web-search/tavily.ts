@@ -6,9 +6,29 @@
  */
 
 import { proxyFetch } from '@/lib/server/proxy-fetch';
+import { createLogger } from '@/lib/logger';
 import type { WebSearchResult, WebSearchSource } from '@/lib/types/web-search';
 
 const TAVILY_API_URL = 'https://api.tavily.com/search';
+const TAVILY_MAX_QUERY_LENGTH = 400;
+const log = createLogger('WebSearch');
+
+function normalizeTavilyQuery(query: string): string {
+  const normalized = query.replace(/\s+/g, ' ').trim();
+
+  if (normalized.length > TAVILY_MAX_QUERY_LENGTH) {
+    log.warn(
+      `[WebSearch] Tavily query truncated: ${normalized.length} → ${TAVILY_MAX_QUERY_LENGTH} chars`,
+    );
+
+    return normalized
+      .slice(0, TAVILY_MAX_QUERY_LENGTH)
+      .replace(/\s+\S*$/, '')
+      .trim();
+  }
+
+  return normalized;
+}
 
 /**
  * Search the web using Tavily REST API and return structured results.
@@ -19,6 +39,7 @@ export async function searchWithTavily(params: {
   maxResults?: number;
 }): Promise<WebSearchResult> {
   const { query, apiKey, maxResults = 5 } = params;
+  const normalizedQuery = normalizeTavilyQuery(query);
 
   const res = await proxyFetch(TAVILY_API_URL, {
     method: 'POST',
@@ -27,7 +48,7 @@ export async function searchWithTavily(params: {
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      query,
+      query: normalizedQuery,
       search_depth: 'basic',
       max_results: maxResults,
       include_answer: 'basic',
