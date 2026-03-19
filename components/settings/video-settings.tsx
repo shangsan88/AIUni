@@ -29,7 +29,6 @@ interface VideoSettingsProps {
 export function VideoSettings({ selectedProviderId }: VideoSettingsProps) {
   const { t } = useI18n();
 
-  const videoModelId = useSettingsStore((state) => state.videoModelId);
   const videoProvidersConfig = useSettingsStore((state) => state.videoProvidersConfig);
   const setVideoProviderConfig = useSettingsStore((state) => state.setVideoProviderConfig);
 
@@ -77,22 +76,29 @@ export function VideoSettings({ selectedProviderId }: VideoSettingsProps) {
         method: 'POST',
         headers: {
           'x-video-provider': selectedProviderId,
-          'x-video-model': videoModelId || '',
           'x-api-key': currentConfig?.apiKey || '',
           'x-base-url': currentConfig?.baseUrl || '',
         },
       });
-      const data = await response.json();
+      const data = (await response.json().catch(() => ({}))) as {
+        success?: boolean;
+        message?: string;
+        error?: string;
+        details?: string;
+      };
       if (data.success) {
         setTestStatus('success');
         setTestMessage(t('settings.videoConnectivitySuccess'));
       } else {
         setTestStatus('error');
-        setTestMessage(`${t('settings.videoConnectivityFailed')}: ${data.message}`);
+        const errorMessage =
+          data.message || data.error || data.details || response.statusText || 'Unknown error';
+        setTestMessage(`${t('settings.videoConnectivityFailed')}: ${errorMessage}`);
       }
     } catch (err) {
       setTestStatus('error');
-      setTestMessage(`${t('settings.videoConnectivityFailed')}: ${err}`);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setTestMessage(`${t('settings.videoConnectivityFailed')}: ${errorMessage}`);
     } finally {
       setTestLoading(false);
     }
@@ -200,9 +206,9 @@ export function VideoSettings({ selectedProviderId }: VideoSettingsProps) {
             className={cn(
               'rounded-lg p-3 text-sm overflow-hidden',
               testStatus === 'success' &&
-                'bg-green-50 text-green-700 border border-green-200 dark:bg-green-950/50 dark:text-green-400 dark:border-green-800',
+              'bg-green-50 text-green-700 border border-green-200 dark:bg-green-950/50 dark:text-green-400 dark:border-green-800',
               testStatus === 'error' &&
-                'bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/50 dark:text-red-400 dark:border-red-800',
+              'bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/50 dark:text-red-400 dark:border-red-800',
             )}
           >
             <div className="flex items-start gap-2 min-w-0">
