@@ -1,32 +1,74 @@
-// logger.test.ts
-import { describe, it, expect } from "vitest";
-import { createLogger } from "@/lib/logger";
+import { createLogger } from './logger';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-describe("logger utilities", () => {
-  describe("createLogger", () => {
-    it("creates a logger instance", () => {
-      const logger = createLogger("test");
+describe('logger utilities', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    delete process.env.LOG_LEVEL;
+    delete process.env.LOG_FORMAT;
+  });
 
-      expect(logger).toBeDefined();
-      expect(typeof logger).toBe("object");
-    });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
-    it("provides logging methods", () => {
-      const logger = createLogger("test");
+  it('formats log output correctly (default format)', () => {
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-      expect(logger).toHaveProperty("info");
-      expect(logger).toHaveProperty("warn");
-      expect(logger).toHaveProperty("error");
-      expect(logger).toHaveProperty("debug");
-    });
+    const logger = createLogger('test');
+    logger.info('hello');
 
-    it("logging methods do not throw errors", () => {
-      const logger = createLogger("test");
+    expect(spy).toHaveBeenCalledTimes(1);
 
-      expect(() => logger.info("info message")).not.toThrow();
-      expect(() => logger.warn("warn message")).not.toThrow();
-      expect(() => logger.error("error message")).not.toThrow();
-      expect(() => logger.debug("debug message")).not.toThrow();
-    });
+    const output = spy.mock.calls[0][0];
+
+    expect(output).toContain('[INFO]');
+    expect(output).toContain('[test]');
+    expect(output).toContain('hello');
+  });
+
+  it('respects log level filtering', () => {
+    process.env.LOG_LEVEL = 'warn';
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const logger = createLogger('test');
+
+    logger.info('should not log');
+    logger.warn('should log');
+
+    expect(logSpy).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('outputs JSON format when LOG_FORMAT=json', () => {
+    process.env.LOG_FORMAT = 'json';
+
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const logger = createLogger('test');
+    logger.info('hello');
+
+    const output = spy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+
+    expect(parsed).toHaveProperty('timestamp');
+    expect(parsed.level).toBe('INFO');
+    expect(parsed.tag).toBe('test');
+    expect(parsed.message).toContain('hello');
+  });
+
+  it('formats Error objects correctly', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const logger = createLogger('test');
+    const error = new Error('boom');
+
+    logger.error(error);
+
+    const output = spy.mock.calls[0][0];
+
+    expect(output).toContain('boom');
   });
 });
