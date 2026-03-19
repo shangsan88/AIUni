@@ -1054,7 +1054,15 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
         }
       }
     },
-    [activeSessionId, clearLiveSessionAfterError, isStreaming, createSession, endSession, runAgentLoop, t],
+    [
+      activeSessionId,
+      clearLiveSessionAfterError,
+      isStreaming,
+      createSession,
+      endSession,
+      runAgentLoop,
+      t,
+    ],
   );
 
   /**
