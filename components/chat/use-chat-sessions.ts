@@ -34,6 +34,7 @@ interface UseChatSessionsOptions {
   onThinking?: (state: { stage: string; agentId?: string } | null) => void;
   onCueUser?: (fromAgentId?: string, prompt?: string) => void;
   onActiveBubble?: (messageId: string | null) => void;
+  onLiveSessionError?: () => void;
   /** Called when a QA/Discussion session completes naturally (director end). */
   onStopSession?: () => void;
 }
@@ -44,6 +45,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
   const onThinkingRef = useRef(options.onThinking);
   const onCueUserRef = useRef(options.onCueUser);
   const onActiveBubbleRef = useRef(options.onActiveBubble);
+  const onLiveSessionErrorRef = useRef(options.onLiveSessionError);
   const onStopSessionRef = useRef(options.onStopSession);
   useEffect(() => {
     onLiveSpeechRef.current = options.onLiveSpeech;
@@ -51,6 +53,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
     onThinkingRef.current = options.onThinking;
     onCueUserRef.current = options.onCueUser;
     onActiveBubbleRef.current = options.onActiveBubble;
+    onLiveSessionErrorRef.current = options.onLiveSessionError;
     onStopSessionRef.current = options.onStopSession;
   }, [
     options.onLiveSpeech,
@@ -58,6 +61,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
     options.onThinking,
     options.onCueUser,
     options.onActiveBubble,
+    options.onLiveSessionError,
     options.onStopSession,
   ]);
   const { t } = useI18n();
@@ -118,6 +122,50 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
 
   // StreamBuffer instances per session (SSE + lecture share the same buffer model)
   const buffersRef = useRef<Map<string, StreamBuffer>>(new Map());
+
+  const clearLiveSessionAfterError = useCallback((sessionId: string, message: string) => {
+    const now = Date.now();
+    const errorMessageId = `error-${now}`;
+
+    const buf = buffersRef.current.get(sessionId);
+    if (buf) {
+      buf.shutdown();
+      buffersRef.current.delete(sessionId);
+    }
+
+    setSessions((prev) =>
+      prev.map((s) =>
+        s.id === sessionId
+          ? {
+              ...s,
+              updatedAt: now,
+              messages: [
+                ...s.messages,
+                {
+                  id: errorMessageId,
+                  role: 'assistant' as const,
+                  parts: [{ type: 'text', text: message }],
+                  metadata: {
+                    senderName: 'System',
+                    originalRole: 'agent' as const,
+                    createdAt: now,
+                  },
+                },
+              ],
+            }
+          : s,
+      ),
+    );
+
+    onActiveBubbleRef.current?.(null);
+    if (onLiveSessionErrorRef.current) {
+      onLiveSessionErrorRef.current();
+    } else {
+      onSpeechProgressRef.current?.(null);
+      onThinkingRef.current?.(null);
+      onLiveSpeechRef.current?.(null, null);
+    }
+  }, []);
 
   // Tracks the single message ID per lecture session
   const lectureMessageIds = useRef<Map<string, string>>(new Map());
@@ -781,34 +829,9 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
           return;
         }
         log.error('[ChatArea] Resume error:', error);
-
-        const errorMessageId = `error-${Date.now()}`;
-        setSessions((prev) =>
-          prev.map((s) =>
-            s.id === sessionId
-              ? {
-                  ...s,
-                  messages: [
-                    ...s.messages,
-                    {
-                      id: errorMessageId,
-                      role: 'assistant' as const,
-                      parts: [
-                        {
-                          type: 'text',
-                          text: `Error: ${error instanceof Error ? error.message : String(error)}`,
-                        },
-                      ],
-                      metadata: {
-                        senderName: 'System',
-                        originalRole: 'agent' as const,
-                        createdAt: Date.now(),
-                      },
-                    },
-                  ],
-                }
-              : s,
-          ),
+        clearLiveSessionAfterError(
+          sessionId,
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
         );
       } finally {
         if (abortControllerRef.current === controller) {
@@ -818,7 +841,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
         }
       }
     },
-    [runAgentLoop],
+    [clearLiveSessionAfterError, runAgentLoop],
   );
 
   /**
@@ -1018,35 +1041,9 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
         }
 
         log.error('[ChatArea] Error:', error);
-
-        // Create error message since there's no pre-created assistant message
-        const errorMessageId = `error-${Date.now()}`;
-        setSessions((prev) =>
-          prev.map((s) =>
-            s.id === sessionId
-              ? {
-                  ...s,
-                  messages: [
-                    ...s.messages,
-                    {
-                      id: errorMessageId,
-                      role: 'assistant' as const,
-                      parts: [
-                        {
-                          type: 'text',
-                          text: `Error: ${error instanceof Error ? error.message : String(error)}`,
-                        },
-                      ],
-                      metadata: {
-                        senderName: 'System',
-                        originalRole: 'agent' as const,
-                        createdAt: Date.now(),
-                      },
-                    },
-                  ],
-                }
-              : s,
-          ),
+        clearLiveSessionAfterError(
+          sessionId!,
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
         );
       } finally {
         // Only clean up if this is still the active controller (avoid race with interrupt)
@@ -1057,7 +1054,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
         }
       }
     },
-    [activeSessionId, isStreaming, createSession, endSession, runAgentLoop, t],
+    [activeSessionId, clearLiveSessionAfterError, isStreaming, createSession, endSession, runAgentLoop, t],
   );
 
   /**
@@ -1174,35 +1171,9 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
         }
 
         log.error('[ChatArea] Discussion error:', error);
-
-        // Create error message since there's no pre-created assistant message
-        const errorMessageId = `error-${Date.now()}`;
-        setSessions((prev) =>
-          prev.map((s) =>
-            s.id === sessionId
-              ? {
-                  ...s,
-                  messages: [
-                    ...s.messages,
-                    {
-                      id: errorMessageId,
-                      role: 'assistant' as const,
-                      parts: [
-                        {
-                          type: 'text',
-                          text: `Error starting discussion: ${error instanceof Error ? error.message : String(error)}`,
-                        },
-                      ],
-                      metadata: {
-                        senderName: 'System',
-                        originalRole: 'agent' as const,
-                        createdAt: Date.now(),
-                      },
-                    },
-                  ],
-                }
-              : s,
-          ),
+        clearLiveSessionAfterError(
+          sessionId,
+          `Error starting discussion: ${error instanceof Error ? error.message : String(error)}`,
         );
       } finally {
         // Only clean up if this is still the active controller (avoid race with interrupt)
@@ -1214,7 +1185,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps -- t is stable from i18n context
-    [endSession, runAgentLoop],
+    [clearLiveSessionAfterError, endSession, runAgentLoop],
   );
 
   /**
