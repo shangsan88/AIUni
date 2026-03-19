@@ -46,6 +46,7 @@ import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDraftCache } from '@/lib/hooks/use-draft-cache';
 import { SpeechButton } from '@/components/audio/speech-button';
+import { getSupportedDocumentType, readTextFileContent } from '@/lib/utils/document-upload';
 
 const log = createLogger('Home');
 
@@ -263,26 +264,27 @@ function HomePage() {
       let pdfFileName: string | undefined;
       let pdfProviderId: string | undefined;
       let pdfProviderConfig: { apiKey?: string; baseUrl?: string } | undefined;
-      let directText = '';
+      let documentType: 'pdf' | 'text' | undefined;
 
       if (form.pdfFile) {
-        const ext = form.pdfFile.name.split('.').pop()?.toLowerCase() ?? '';
-        const isTextFile = ['md', 'txt', 'markdown'].includes(ext);
+        const detectedDocumentType = getSupportedDocumentType(form.pdfFile);
+        if (!detectedDocumentType) {
+          throw new Error('Unsupported file type');
+        }
+        documentType = detectedDocumentType;
 
-        if (isTextFile) {
-          // Text-based files: read content directly, skip OCR pipeline
-          directText = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = () => reject(new Error('Failed to read file'));
-            reader.readAsText(form.pdfFile!);
-          });
-          pdfFileName = form.pdfFile.name;
-        } else {
-          // PDF files: store blob for later OCR parsing
-          pdfStorageKey = await storePdfBlob(form.pdfFile);
-          pdfFileName = form.pdfFile.name;
+        if (documentType === 'text') {
+          const content = await readTextFileContent(form.pdfFile);
+          if (!content.trim()) {
+            toast.error(t('upload.emptyFile'));
+            return;
+          }
+        }
 
+        pdfStorageKey = await storePdfBlob(form.pdfFile);
+        pdfFileName = form.pdfFile.name;
+
+        if (documentType === 'pdf') {
           const settings = useSettingsStore.getState();
           pdfProviderId = settings.pdfProviderId;
           const providerCfg = settings.pdfProvidersConfig?.[settings.pdfProviderId];
@@ -298,11 +300,12 @@ function HomePage() {
       const sessionState = {
         sessionId: nanoid(),
         requirements,
-        pdfText: directText,
+        pdfText: '',
         pdfImages: [],
         imageStorageIds: [],
         pdfStorageKey,
         pdfFileName,
+        documentType,
         pdfProviderId,
         pdfProviderConfig,
         sceneOutlines: null,

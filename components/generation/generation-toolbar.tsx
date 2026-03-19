@@ -21,20 +21,11 @@ import type { WebSearchProviderId } from '@/lib/web-search/types';
 import type { ProviderId } from '@/lib/ai/providers';
 import type { SettingsSection } from '@/lib/types/settings';
 import { MediaPopover } from '@/components/generation/media-popover';
+import { getSupportedDocumentType, SUPPORTED_DOCUMENT_ACCEPT } from '@/lib/utils/document-upload';
 
 // ─── Constants ───────────────────────────────────────────────
 const MAX_PDF_SIZE_MB = 50;
 const MAX_PDF_SIZE_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024;
-const ACCEPTED_EXTENSIONS = '.pdf,.md,.txt,.markdown';
-
-/** Check whether a File is one of our supported document types */
-function isSupportedFile(file: File): boolean {
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
-  if (['md', 'txt', 'markdown'].includes(ext)) return true;
-  if (ext === 'pdf' || file.type === 'application/pdf') return true;
-  if (file.type.startsWith('text/')) return true;
-  return false;
-}
 
 // ─── Types ───────────────────────────────────────────────────
 export interface GenerationToolbarProps {
@@ -108,7 +99,7 @@ export function GenerationToolbar({
 
   // PDF handler
   const handleFileSelect = (file: File) => {
-    if (!isSupportedFile(file)) return;
+    if (!getSupportedDocumentType(file)) return;
     if (file.size > MAX_PDF_SIZE_BYTES) {
       onPdfError(t('upload.fileTooLarge'));
       return;
@@ -222,7 +213,7 @@ export function GenerationToolbar({
               type="file"
               ref={fileInputRef}
               className="hidden"
-              accept={ACCEPTED_EXTENSIONS}
+              accept={SUPPORTED_DOCUMENT_ACCEPT}
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (f) handleFileSelect(f);

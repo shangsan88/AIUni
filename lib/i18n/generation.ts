@@ -15,6 +15,7 @@ export const generationZhCN = {
     requirementPlaceholder:
       '输入你想学的任何内容，例如：\n「从零学 Python，30 分钟写出第一个程序」\n「用白板给我讲解傅里叶变换」\n「阿瓦隆桌游怎么玩」',
     requirementRequired: '请输入课程需求',
+    emptyFile: '文件内容为空，请选择有内容的文件',
     fileTooLarge: '文件过大，请选择小于50MB的文件',
   },
   generation: {
@@ -79,6 +80,7 @@ export const generationEnUS = {
     requirementPlaceholder:
       'Tell me anything you want to learn, e.g.\n"Teach me Python from scratch in 30 minutes"\n"Explain Fourier Transform on the whiteboard"\n"How to play the board game Avalon"',
     requirementRequired: 'Please enter course requirements',
+    emptyFile: 'File is empty. Please select a file with content',
     fileTooLarge: 'File too large. Please select a file smaller than 50MB',
   },
   generation: {
