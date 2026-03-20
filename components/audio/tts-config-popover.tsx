@@ -1,7 +1,5 @@
 'use client';
 
-import { useState, useRef, useCallback, useMemo } from 'react';
-import { Volume2, Play, Loader2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Select,
@@ -12,10 +10,12 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
+import { getTTSVoices } from '@/lib/audio/constants';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useSettingsStore } from '@/lib/store/settings';
-import { getTTSVoices } from '@/lib/audio/constants';
+import { cn } from '@/lib/utils';
+import { Loader2, Play, Volume2 } from 'lucide-react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 /** Extract the English name from voice name format "ChineseName (English)" */
 function getVoiceDisplayName(name: string, lang: string): string {
@@ -70,7 +70,7 @@ export function TtsConfigPopover() {
           return;
         }
 
-        const utterance = new SpeechSynthesisUtterance('你好，欢迎来到AI课堂！让我们一起学习吧。');
+        const utterance = new SpeechSynthesisUtterance(t('toolbar.ttsDemoVoice'));
         const voices = window.speechSynthesis.getVoices();
         const selectedVoice = voices.find((v) => v.name === ttsVoice || v.lang === ttsVoice);
         if (selectedVoice) utterance.voice = selectedVoice;
@@ -90,7 +90,7 @@ export function TtsConfigPopover() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text: '你好，欢迎来到AI课堂！让我们一起学习吧。',
+          text: t('toolbar.ttsDemoVoice'),
           audioId: 'preview',
           ttsProviderId: ttsProviderId,
           ttsVoice: ttsVoice,

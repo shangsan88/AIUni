@@ -28,6 +28,7 @@ export const commonZhCN = {
     ttsHint: '选择 AI 教师的朗读音色',
     ttsPreview: '试听',
     ttsPreviewing: '播放中...',
+    ttsDemoVoice: '你好，欢迎来到AI课堂！让我们一起学习吧。'
   },
   export: {
     pptx: '导出 PPTX',
