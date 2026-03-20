@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
-import { generateText } from 'ai';
 import { createLogger } from '@/lib/logger';
+import { callLLM } from '@/lib/ai/llm';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { resolveModel } from '@/lib/server/resolve-model';
 const log = createLogger('Verify Model');
@@ -32,11 +32,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Send a minimal test message
-    const { text } = await generateText({
-      model: languageModel,
-      prompt: 'Say "OK" if you can hear me.',
-    });
+    // Send a minimal test message via the unified LLM wrapper so provider-
+    // specific compatibility handling (e.g. openai.responses stream-only
+    // endpoints) is applied here too.
+    const { text } = await callLLM(
+      {
+        model: languageModel,
+        prompt: 'Say "OK" if you can hear me.',
+      },
+      'verify-model',
+    );
 
     return apiSuccess({
       message: 'Connection successful',

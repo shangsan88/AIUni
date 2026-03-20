@@ -39,6 +39,118 @@ function getModelId(params: GenerateTextParams | StreamTextParams): string {
   return 'unknown';
 }
 
+function getModelProvider(params: GenerateTextParams | StreamTextParams): string | undefined {
+  const m = params.model;
+  if (!m || typeof m !== 'object') return undefined;
+
+  const config = (m as { config?: { provider?: unknown } }).config;
+  return typeof config?.provider === 'string' ? config.provider : undefined;
+}
+
+function shouldMaterializeFromStream(params: GenerateTextParams): boolean {
+  return getModelProvider(params) === 'openai.responses';
+}
+
+async function materializeStreamTextResult(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  result: StreamTextResult<any, any>,
+  getStreamError?: () => unknown,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<GenerateTextResult<any, any>> {
+  let consumeError: unknown;
+  await result.consumeStream({
+    onError: (error) => {
+      consumeError = error;
+    },
+  });
+
+  const streamError = getStreamError?.() ?? consumeError;
+  if (streamError) {
+    throw streamError;
+  }
+
+  let materialized;
+  try {
+    materialized = await Promise.all([
+      result.content,
+      result.text,
+      result.reasoning,
+      result.reasoningText,
+      result.files,
+      result.sources,
+      result.toolCalls,
+      result.staticToolCalls,
+      result.dynamicToolCalls,
+      result.toolResults,
+      result.staticToolResults,
+      result.dynamicToolResults,
+      result.finishReason,
+      result.rawFinishReason,
+      result.usage,
+      result.totalUsage,
+      result.warnings,
+      result.request,
+      result.response,
+      result.providerMetadata,
+      result.steps,
+      result.output,
+    ]);
+  } catch (error) {
+    throw getStreamError?.() ?? error;
+  }
+
+  const [
+    content,
+    text,
+    reasoning,
+    reasoningText,
+    files,
+    sources,
+    toolCalls,
+    staticToolCalls,
+    dynamicToolCalls,
+    toolResults,
+    staticToolResults,
+    dynamicToolResults,
+    finishReason,
+    rawFinishReason,
+    usage,
+    totalUsage,
+    warnings,
+    request,
+    response,
+    providerMetadata,
+    steps,
+    output,
+  ] = materialized;
+
+  return {
+    content,
+    text,
+    reasoning,
+    reasoningText,
+    files,
+    sources,
+    toolCalls,
+    staticToolCalls,
+    dynamicToolCalls,
+    toolResults,
+    staticToolResults,
+    dynamicToolResults,
+    finishReason,
+    rawFinishReason,
+    usage,
+    totalUsage,
+    warnings,
+    request,
+    response,
+    providerMetadata,
+    steps,
+    output,
+    experimental_output: output,
+  } as GenerateTextResult<any, any>;
+}
+
 // ---------------------------------------------------------------------------
 // Thinking / Reasoning Adapter
 //
@@ -308,9 +420,28 @@ export async function callLLM<T extends GenerateTextParams>(
       // Wrap in thinkingContext so the custom fetch wrapper in providers.ts
       // can read the config and inject vendor-specific body params for
       // OpenAI-compatible providers.
-      const result = await thinkingContext.run(effectiveThinking, () =>
-        generateText(injectedParams),
-      );
+      //
+      // Compatibility note:
+      // Some OpenAI-compatible /responses endpoints only accept streaming
+      // requests and reject non-streaming generateText() calls with
+      // "Stream must be set to true". For explicit openai.responses models,
+      // we transparently use streamText() and materialize the final result
+      // back into a GenerateTextResult-shaped object.
+      const result = await thinkingContext.run(effectiveThinking, async () => {
+        if (shouldMaterializeFromStream(injectedParams)) {
+          log.info(`[${source}] Using streamText compatibility path for openai.responses`);
+          let streamError: unknown;
+          const streamed = streamText({
+            ...(injectedParams as StreamTextParams),
+            onError: ({ error }) => {
+              streamError = error;
+            },
+          });
+          return materializeStreamTextResult(streamed, () => streamError);
+        }
+
+        return generateText(injectedParams);
+      });
 
       // Validate result (only when retries are configured)
       if (validate && !validate(result.text)) {
