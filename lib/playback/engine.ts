@@ -500,8 +500,10 @@ export class PlaybackEngine {
             ? { dimOpacity: action.dimOpacity }
             : { color: action.color }),
         } as Effect);
-        // Don't block — continue immediately
-        this.processNext();
+        // Don't block — continue immediately (use queueMicrotask to avoid
+        // stack overflow from deep synchronous recursion when many consecutive
+        // spotlight/laser actions appear in sequence)
+        queueMicrotask(() => this.processNext());
         break;
       }
 
