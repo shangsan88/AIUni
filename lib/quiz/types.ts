@@ -70,6 +70,7 @@ export interface QuizHistoryItem {
   total: number;
   percentage: number;
   weakAreas: string[];
+  topicsAttempted?: string[];
   createdAt: number;
   metadata?: Record<string, string | number | string[]>;
 }
@@ -95,7 +96,5 @@ export interface CodeReviewResult {
   optimalApproach: string;
   timeComplexity: string;
   spaceComplexity: string;
-  score: number;
-  verdict: 'strong' | 'partial' | 'incorrect';
   cleanerVersion?: string;
 }

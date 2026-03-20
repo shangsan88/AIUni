@@ -26,17 +26,13 @@ export function saveQuizHistoryItem(item: QuizHistoryItem) {
 export function getWeakAreaSummary(): WeakAreaSummary[] {
   const map = new Map<string, WeakAreaSummary>();
   for (const item of readHistory()) {
-    const seen = new Set<string>();
-    for (const area of item.weakAreas) {
+    const weakSet = new Set(item.weakAreas);
+    const allTopics = item.topicsAttempted ?? item.weakAreas;
+    for (const area of allTopics) {
       const current = map.get(area) || { area, misses: 0, attempts: 0 };
-      current.misses += 1;
       current.attempts += 1;
+      if (weakSet.has(area)) current.misses += 1;
       map.set(area, current);
-      seen.add(area);
-    }
-    for (const area of seen) {
-      const current = map.get(area);
-      if (current) map.set(area, current);
     }
   }
   return Array.from(map.values()).sort((a, b) => b.misses - a.misses).slice(0, 8);

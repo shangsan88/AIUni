@@ -31,6 +31,7 @@ export function QuizDashboard() {
   const { locale } = useI18n();
   const [track, setTrack] = useState<QuizTrack | null>(null);
   const [loading, setLoading] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
   const [placementCompany, setPlacementCompany] = useState('General');
   const [placementDifficulty, setPlacementDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [codingLanguage, setCodingLanguage] = useState<'python' | 'java' | 'cpp' | 'javascript'>('python');
@@ -43,6 +44,7 @@ export function QuizDashboard() {
   const startQuiz = async () => {
     if (!track) return;
     setLoading(true);
+    setGenerateError(null);
     try {
       const response = await fetch('/api/quiz/generate', {
         method: 'POST',
@@ -62,8 +64,15 @@ export function QuizDashboard() {
               },
         ),
       });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        setGenerateError(err.error || 'Failed to generate quiz. Please check your model settings and try again.');
+        return;
+      }
       const data = await response.json();
       setSession(data.data || data);
+    } catch {
+      setGenerateError('Could not reach the server. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -87,6 +96,12 @@ export function QuizDashboard() {
           onClick={() => setTrack('coding-examination')}
         />
       </div>
+
+      {generateError && (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
+          {generateError}
+        </p>
+      )}
 
       {track === 'placement-aptitude' ? (
         <QuizConfigForm

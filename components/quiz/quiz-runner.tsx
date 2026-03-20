@@ -52,12 +52,19 @@ export function QuizRunner({ session, onBack }: { session: PlacementQuizSession 
           headers: modelHeaders(),
           body: JSON.stringify({ summary }),
         });
-        const data = await response.json();
-        const debriefData = data.data || data;
-        setDebrief({
-          summary: debriefData.summary || 'Review arithmetic speed, accuracy, and elimination strategies.',
-          percentileEstimate: debriefData.percentileEstimate || estimatePercentile(score.percentage),
-        });
+        if (response.ok) {
+          const data = await response.json();
+          const debriefData = data.data || data;
+          setDebrief({
+            summary: debriefData.summary || 'Review arithmetic speed, accuracy, and elimination strategies.',
+            percentileEstimate: debriefData.percentileEstimate || estimatePercentile(score.percentage),
+          });
+        } else {
+          setDebrief({
+            summary: 'Review arithmetic speed, accuracy, and elimination strategies.',
+            percentileEstimate: estimatePercentile(score.percentage),
+          });
+        }
         saveQuizHistoryItem({
           id: crypto.randomUUID(),
           track: session.track,
@@ -66,6 +73,7 @@ export function QuizRunner({ session, onBack }: { session: PlacementQuizSession 
           total: score.total,
           percentage: score.percentage,
           weakAreas: score.weakAreas,
+          topicsAttempted: [...new Set(session.questions.map((q) => q.topic))],
           createdAt: Date.now(),
           metadata: { company: session.company, difficulty: session.difficulty },
         });
@@ -82,6 +90,13 @@ export function QuizRunner({ session, onBack }: { session: PlacementQuizSession 
                 language: session.language,
               }),
             });
+            if (!response.ok) {
+              return {
+                id: problem.id,
+                title: problem.title,
+                review: { score: 0, verdict: 'fail' as const, summary: 'Review unavailable.', strengths: [], missingPoints: [], optimalApproach: '', timeComplexity: '', spaceComplexity: '' },
+              };
+            }
             const data = await response.json();
             return { id: problem.id, title: problem.title, review: data.data || data };
           }),
@@ -104,6 +119,7 @@ export function QuizRunner({ session, onBack }: { session: PlacementQuizSession 
           total,
           percentage,
           weakAreas,
+          topicsAttempted: [...new Set(session.problems.map((p) => p.topic))],
           createdAt: Date.now(),
           metadata: { language: session.language, difficulty: session.difficulty },
         });

@@ -34,12 +34,12 @@ export function LinkDialog({ visible, onClose }: LinkDialogProps) {
   const activeElementId = activeElementIdList[0];
   const activeElement = elements?.find((el) => el.id === activeElementId);
   const currentLink = activeElement?.link;
+  const currentLinkTarget = currentLink?.type === 'web' ? currentLink.target : '';
 
   useEffect(() => {
-    if (visible) {
-      setUrl(currentLink?.type === 'web' ? currentLink.target : '');
-    }
-  }, [visible, currentLink]);
+    if (visible) setUrl(currentLinkTarget);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, currentLinkTarget]);
 
   const handleSave = () => {
     if (!activeElementId) return;

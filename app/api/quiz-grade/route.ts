@@ -85,7 +85,7 @@ ${commentPrompt ? `Grading guidance: ${commentPrompt}\n` : ''}Student answer: ${
       return apiSuccess({ ...gradeResult });
     } catch {
       return apiError(
-        'INVALID_LLM_RESPONSE',
+        'INVALID_RESPONSE',
         502,
         isZh
           ? '评分服务返回了无效数据。'

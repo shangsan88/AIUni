@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
     ].join(' ');
 
     const coachRequest: StatelessChatRequest = {
-      messages: [{ id: 'ctx-1', role: 'user', content: contextPrompt, createdAt: new Date() }],
+      messages: [{ id: 'ctx-1', role: 'user', parts: [{ type: 'text', text: contextPrompt }] }],
       storeState,
       config: {
         agentIds: [COACH_ID],
@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
     ].join(' ');
 
     const interviewerRequest: StatelessChatRequest = {
-      messages: [{ id: 'ctx-1', role: 'user', content: contextPrompt, createdAt: new Date() }],
+      messages: [{ id: 'ctx-1', role: 'user', parts: [{ type: 'text', text: contextPrompt }] }],
       storeState,
       config: {
         agentIds: [INTERVIEWER_ID],
