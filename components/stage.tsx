@@ -210,11 +210,12 @@ export function Stage({
     engineRef.current?.handleEndDiscussion();
     manualStopRef.current = false;
 
-    // Show end flash with correct session type
+    // Show end flash and collapse chat panel when discussion/QA ends
     if (activeType === 'qa' || activeType === 'discussion') {
       setEndFlashSessionType(activeType);
       setShowEndFlash(true);
       setTimeout(() => setShowEndFlash(false), 1800);
+      setChatAreaCollapsed(true);
     }
 
     resetLiveState();
@@ -467,8 +468,9 @@ export function Stage({
         prompt,
         agentId: agentId || 'default-1',
       });
-      // Auto-switch to chat tab when discussion starts
+      // Auto-switch to chat tab and expand the panel when discussion starts
       chatAreaRef.current?.switchToTab('chat');
+      setChatAreaCollapsed(false);
       // Immediately mark streaming for synchronized stop button
       setChatIsStreaming(true);
       setChatSessionType('discussion');
@@ -779,8 +781,9 @@ export function Stage({
               } else {
                 chatAreaRef.current?.sendMessage(msg);
               }
-              // Auto-switch to chat tab when user sends a message
+              // Auto-switch to chat tab and expand panel when user sends a message
               chatAreaRef.current?.switchToTab('chat');
+              setChatAreaCollapsed(false);
               setIsCueUser(false);
               // Immediately mark streaming for synchronized stop button
               setChatIsStreaming(true);
