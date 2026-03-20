@@ -145,7 +145,21 @@ export async function generateTTS(
 
 /**
  * OpenAI TTS implementation (direct API call with explicit UTF-8 encoding)
+ *
+ * Model selection is automatic:
+ * - Voices exclusive to gpt-4o-mini-tts (ash, ballad, cedar, coral, marin, sage, verse)
+ *   → gpt-4o-mini-tts
+ * - Legacy tts-1 voices (alloy, echo, fable, nova, onyx, shimmer)
+ *   → tts-1
  */
+
+/** Voices that only exist on gpt-4o-mini-tts and are not available on tts-1. */
+const GPT4O_TTS_VOICES = new Set(['ash', 'ballad', 'cedar', 'coral', 'marin', 'sage', 'verse']);
+
+function resolveOpenAITTSModel(voice: string): string {
+  return GPT4O_TTS_VOICES.has(voice) ? 'gpt-4o-mini-tts' : 'tts-1';
+}
+
 async function generateOpenAITTS(
   config: TTSModelConfig,
   text: string,
@@ -159,7 +173,7 @@ async function generateOpenAITTS(
       'Content-Type': 'application/json; charset=utf-8',
     },
     body: JSON.stringify({
-      model: 'tts-1',
+      model: resolveOpenAITTSModel(config.voice),
       input: text,
       voice: config.voice,
       speed: config.speed || 1.0,
@@ -168,7 +182,12 @@ async function generateOpenAITTS(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(`OpenAI TTS API error: ${error.error?.message || response.statusText}`);
+    const msg = error.error?.message || response.statusText;
+    const hint =
+      response.status === 403 || (typeof msg === 'string' && msg.includes('does not have access'))
+        ? ` — check that your OpenAI project has TTS models enabled (platform.openai.com → Project → Model access)`
+        : '';
+    throw new Error(`OpenAI TTS API error: ${msg}${hint}`);
   }
 
   const arrayBuffer = await response.arrayBuffer();
