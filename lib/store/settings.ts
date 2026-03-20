@@ -8,6 +8,11 @@ import { persist } from 'zustand/middleware';
 import type { ProviderId } from '@/lib/ai/providers';
 import type { ProvidersConfig } from '@/lib/types/settings';
 import { PROVIDERS } from '@/lib/ai/providers';
+import {
+  OPENAI_RESPONSES_ONLY_MODEL_IDS,
+  isOpenAIResponsesBaseUrl,
+  normalizeOpenAIResponsesBaseUrl,
+} from '@/lib/ai/openai-responses';
 import type { TTSProviderId, ASRProviderId } from '@/lib/audio/types';
 import { ASR_PROVIDERS, DEFAULT_TTS_VOICES } from '@/lib/audio/constants';
 import type { PDFProviderId } from '@/lib/pdf/types';
@@ -313,6 +318,59 @@ const getDefaultWebSearchConfig = () => ({
   } as Record<WebSearchProviderId, { apiKey: string; baseUrl: string; enabled: boolean }>,
 });
 
+function migrateOpenAIProtocolSplit(state: Partial<SettingsState>): void {
+  if (!state.providersConfig) return;
+
+  const openAIConfig = state.providersConfig.openai;
+  const responsesConfig = state.providersConfig['openai-responses'];
+
+  if (openAIConfig) {
+    const responseModels = (openAIConfig.models || []).filter((model) =>
+      OPENAI_RESPONSES_ONLY_MODEL_IDS.has(model.id),
+    );
+
+    if (responseModels.length > 0 && responsesConfig) {
+      const existingResponseModelIds = new Set((responsesConfig.models || []).map((m) => m.id));
+      responsesConfig.models = [
+        ...responseModels.filter((model) => !existingResponseModelIds.has(model.id)),
+        ...(responsesConfig.models || []),
+      ];
+      openAIConfig.models = (openAIConfig.models || []).filter(
+        (model) => !OPENAI_RESPONSES_ONLY_MODEL_IDS.has(model.id),
+      );
+    }
+  }
+
+  for (const config of Object.values(state.providersConfig)) {
+    if (!config) continue;
+
+    const baseUrlWasResponses =
+      config.type === 'openai' && isOpenAIResponsesBaseUrl(config.baseUrl);
+    const defaultUrlWasResponses =
+      config.type === 'openai' && isOpenAIResponsesBaseUrl(config.defaultBaseUrl);
+
+    if (baseUrlWasResponses || defaultUrlWasResponses) {
+      config.type = 'openai-responses';
+    }
+
+    if (baseUrlWasResponses) {
+      config.baseUrl = normalizeOpenAIResponsesBaseUrl(config.baseUrl) || '';
+    }
+
+    if (defaultUrlWasResponses) {
+      config.defaultBaseUrl = normalizeOpenAIResponsesBaseUrl(config.defaultBaseUrl);
+    }
+  }
+
+  if (
+    state.providerId === 'openai' &&
+    state.modelId &&
+    OPENAI_RESPONSES_ONLY_MODEL_IDS.has(state.modelId)
+  ) {
+    state.providerId = 'openai-responses';
+  }
+}
+
 /**
  * Ensure providersConfig includes all built-in providers and their latest models.
  * Called on every rehydrate (not just version migrations) so new providers
@@ -340,7 +398,7 @@ function ensureBuiltInProviders(state: Partial<SettingsState>): void {
         ...existing,
         models: mergedModels,
         name: existing.name || provider.name,
-        type: existing.type || provider.type,
+        type: existing.isBuiltIn === false ? existing.type : provider.type,
         defaultBaseUrl: existing.defaultBaseUrl || provider.defaultBaseUrl,
         icon: provider.icon || existing.icon,
         requiresApiKey: existing.requiresApiKey ?? provider.requiresApiKey,
@@ -408,7 +466,7 @@ const migrateFromOldStorage = () => {
   let maxTurns = '10';
   if (oldMaxTurns) maxTurns = oldMaxTurns;
 
-  return {
+  const migrated = {
     providerId,
     modelId,
     providersConfig,
@@ -416,6 +474,9 @@ const migrateFromOldStorage = () => {
     selectedAgentIds,
     maxTurns,
   };
+
+  migrateOpenAIProtocolSplit(migrated as Partial<SettingsState>);
+  return migrated;
 };
 
 export const useSettingsStore = create<SettingsState>()(
@@ -943,7 +1004,7 @@ export const useSettingsStore = create<SettingsState>()(
     },
     {
       name: 'settings-storage',
-      version: 2,
+      version: 3,
       // Migrate persisted state
       migrate: (persistedState: unknown, version: number) => {
         const state = persistedState as Partial<SettingsState>;
@@ -957,6 +1018,7 @@ export const useSettingsStore = create<SettingsState>()(
 
         // Ensure providersConfig has all built-in providers (also in merge below)
         ensureBuiltInProviders(state);
+        migrateOpenAIProtocolSplit(state);
 
         // Migrate from old ttsModel to new ttsProviderId
         if (state.ttsModel && !state.ttsProviderId) {
@@ -1055,6 +1117,7 @@ export const useSettingsStore = create<SettingsState>()(
       merge: (persistedState, currentState) => {
         const merged = { ...currentState, ...(persistedState as object) };
         ensureBuiltInProviders(merged as Partial<SettingsState>);
+        migrateOpenAIProtocolSplit(merged as Partial<SettingsState>);
         return merged as SettingsState;
       },
     },

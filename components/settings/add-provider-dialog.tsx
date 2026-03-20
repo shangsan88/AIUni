@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 
 export interface NewProviderData {
   name: string;
-  type: 'openai' | 'anthropic' | 'google';
+  type: 'openai' | 'openai-responses' | 'anthropic' | 'google';
   baseUrl: string;
   icon: string;
   requiresApiKey: boolean;
@@ -29,7 +29,9 @@ export function AddProviderDialog({ open, onOpenChange, onAdd }: AddProviderDial
 
   // Internal state
   const [name, setName] = useState('');
-  const [type, setType] = useState<'openai' | 'anthropic' | 'google'>('openai');
+  const [type, setType] = useState<'openai' | 'openai-responses' | 'anthropic' | 'google'>(
+    'openai',
+  );
   const [baseUrl, setBaseUrl] = useState('');
   const [icon, setIcon] = useState('');
   const [requiresApiKey, setRequiresApiKey] = useState(true);
@@ -86,7 +88,7 @@ export function AddProviderDialog({ open, onOpenChange, onAdd }: AddProviderDial
           {/* API Mode */}
           <div className="space-y-2">
             <Label>{t('settings.providerApiMode')}</Label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <button
                 onClick={() => setType('openai')}
                 className={cn(
@@ -97,6 +99,17 @@ export function AddProviderDialog({ open, onOpenChange, onAdd }: AddProviderDial
                 )}
               >
                 {t('settings.apiModeOpenAI')}
+              </button>
+              <button
+                onClick={() => setType('openai-responses')}
+                className={cn(
+                  'p-2 rounded-lg border text-left text-sm transition-colors',
+                  type === 'openai-responses'
+                    ? 'bg-primary/5 border-primary/50'
+                    : 'hover:bg-muted/50 border-transparent',
+                )}
+              >
+                {t('settings.apiModeOpenAIResponses')}
               </button>
               <button
                 onClick={() => setType('anthropic')}

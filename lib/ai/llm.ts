@@ -44,10 +44,10 @@ function getModelId(params: GenerateTextParams | StreamTextParams): string {
 //
 // Builds a lookup table from PROVIDERS at module load time, then uses it to
 // map a unified ThinkingConfig into provider-specific providerOptions.
-// Currently handles: openai (native), anthropic (native), google (native).
-// OpenAI-compatible providers (DeepSeek, Qwen, Kimi, GLM, etc.) are NOT
-// handled — their vendor-specific thinking params can't be reliably passed
-// through Vercel AI SDK's createOpenAI.
+// Currently handles: openai/openai-responses (native), anthropic (native),
+// google (native). OpenAI-compatible providers (DeepSeek, Qwen, Kimi, GLM,
+// etc.) are NOT handled — their vendor-specific thinking params can't be
+// reliably passed through Vercel AI SDK's createOpenAI.
 // ---------------------------------------------------------------------------
 
 interface ModelThinkingInfo {
@@ -89,7 +89,8 @@ function buildDisableThinking(
   _thinking: ThinkingCapability,
 ): ProviderOptions | undefined {
   switch (providerType) {
-    case 'openai': {
+    case 'openai':
+    case 'openai-responses': {
       // GPT-5.1/5.2: support effort=none (fully off)
       // GPT-5/mini/nano: lowest is minimal
       // o-series: lowest is low
@@ -153,6 +154,7 @@ function buildEnableThinking(
 ): ProviderOptions | undefined {
   switch (providerType) {
     case 'openai':
+    case 'openai-responses':
       // OpenAI uses discrete effort levels, no token-based budget.
       // Don't inject anything — let the model use its default effort.
       return undefined;
@@ -234,7 +236,8 @@ function getDefaultProviderOptions(modelId: string): ProviderOptions | undefined
 /**
  * Inject provider-specific thinking options into LLM call params.
  *
- * For native providers (OpenAI/Anthropic/Google), this sets providerOptions.
+ * For native providers (OpenAI/OpenAI Responses/Anthropic/Google), this sets
+ * providerOptions.
  * For OpenAI-compatible providers, providerOptions won't work (stripped by
  * zod schema) — those are handled by the custom fetch wrapper via thinkingContext.
  *

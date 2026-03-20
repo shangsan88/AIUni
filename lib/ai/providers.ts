@@ -27,6 +27,8 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import type { LanguageModel } from 'ai';
+import { OPENAI_CHAT_MODELS, OPENAI_RESPONSES_MODELS } from '@/lib/ai/openai-responses';
+import { createOpenAIResponsesModel } from '@/lib/ai/openai-responses-adapter';
 import type {
   ProviderId,
   ProviderConfig,
@@ -56,173 +58,17 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     defaultBaseUrl: 'https://api.openai.com/v1',
     requiresApiKey: true,
     icon: '/logos/openai.svg',
-    models: [
-      {
-        id: 'gpt-5.2',
-        name: 'GPT-5.2',
-        contextWindow: 400000,
-        outputWindow: 128000,
-        capabilities: {
-          streaming: true,
-          tools: true,
-          vision: true,
-          thinking: {
-            toggleable: true,
-            budgetAdjustable: true,
-            defaultEnabled: false,
-          },
-        },
-      },
-      {
-        id: 'gpt-5.1',
-        name: 'GPT-5.1',
-        contextWindow: 400000,
-        outputWindow: 128000,
-        capabilities: {
-          streaming: true,
-          tools: true,
-          vision: true,
-          thinking: {
-            toggleable: true,
-            budgetAdjustable: true,
-            defaultEnabled: false,
-          },
-        },
-      },
-      {
-        id: 'gpt-5',
-        name: 'GPT-5',
-        contextWindow: 400000,
-        outputWindow: 128000,
-        capabilities: {
-          streaming: true,
-          tools: true,
-          vision: true,
-          thinking: {
-            toggleable: false,
-            budgetAdjustable: true,
-            defaultEnabled: true,
-          },
-        },
-      },
-      {
-        id: 'gpt-5-mini',
-        name: 'GPT-5-mini',
-        contextWindow: 128000,
-        outputWindow: 4096,
-        capabilities: {
-          streaming: true,
-          tools: true,
-          vision: true,
-          thinking: {
-            toggleable: false,
-            budgetAdjustable: true,
-            defaultEnabled: true,
-          },
-        },
-      },
-      {
-        id: 'gpt-5-nano',
-        name: 'GPT-5-nano',
-        contextWindow: 128000,
-        outputWindow: 4096,
-        capabilities: {
-          streaming: true,
-          tools: true,
-          vision: true,
-          thinking: {
-            toggleable: false,
-            budgetAdjustable: true,
-            defaultEnabled: true,
-          },
-        },
-      },
-      {
-        id: 'gpt-4o',
-        name: 'GPT-4o',
-        contextWindow: 128000,
-        outputWindow: 4096,
-        capabilities: { streaming: true, tools: true, vision: true },
-      },
-      {
-        id: 'gpt-4o-mini',
-        name: 'GPT-4o-mini',
-        contextWindow: 128000,
-        outputWindow: 4096,
-        capabilities: { streaming: true, tools: true, vision: true },
-      },
-      {
-        id: 'gpt-4-turbo',
-        name: 'GPT-4-turbo',
-        contextWindow: 128000,
-        outputWindow: 4096,
-        capabilities: { streaming: true, tools: true, vision: true },
-      },
-      {
-        id: 'o4-mini',
-        name: 'o4-mini',
-        contextWindow: 200000,
-        outputWindow: 100000,
-        capabilities: {
-          streaming: true,
-          tools: true,
-          vision: false,
-          thinking: {
-            toggleable: false,
-            budgetAdjustable: true,
-            defaultEnabled: true,
-          },
-        },
-      },
-      {
-        id: 'o3',
-        name: 'o3',
-        contextWindow: 200000,
-        outputWindow: 100000,
-        capabilities: {
-          streaming: true,
-          tools: true,
-          vision: false,
-          thinking: {
-            toggleable: false,
-            budgetAdjustable: true,
-            defaultEnabled: true,
-          },
-        },
-      },
-      {
-        id: 'o3-mini',
-        name: 'o3-mini',
-        contextWindow: 200000,
-        outputWindow: 100000,
-        capabilities: {
-          streaming: true,
-          tools: true,
-          vision: false,
-          thinking: {
-            toggleable: false,
-            budgetAdjustable: true,
-            defaultEnabled: true,
-          },
-        },
-      },
-      {
-        id: 'o1',
-        name: 'o1',
-        contextWindow: 200000,
-        outputWindow: 100000,
-        capabilities: {
-          streaming: true,
-          tools: false,
-          vision: false,
-          thinking: {
-            toggleable: false,
-            budgetAdjustable: true,
-            defaultEnabled: true,
-          },
-        },
-      },
-    ],
+    models: OPENAI_CHAT_MODELS,
+  },
+
+  'openai-responses': {
+    id: 'openai-responses',
+    name: 'OpenAI Responses',
+    type: 'openai-responses',
+    defaultBaseUrl: 'https://api.openai.com/v1',
+    requiresApiKey: true,
+    icon: '/logos/openai.svg',
+    models: OPENAI_RESPONSES_MODELS,
   },
 
   anthropic: {
@@ -992,6 +838,15 @@ export function getModel(config: ModelConfig): ModelWithInfo {
 
       const openai = createOpenAI(openaiOptions);
       model = openai.chat(config.modelId);
+      break;
+    }
+
+    case 'openai-responses': {
+      model = createOpenAIResponsesModel({
+        apiKey: effectiveApiKey,
+        baseUrl: effectiveBaseUrl,
+        modelId: config.modelId,
+      });
       break;
     }
 

@@ -39,6 +39,7 @@ interface ServerConfig {
 
 const LLM_ENV_MAP: Record<string, string> = {
   OPENAI: 'openai',
+  OPENAI_RESPONSES: 'openai-responses',
   ANTHROPIC: 'anthropic',
   GOOGLE: 'google',
   DEEPSEEK: 'deepseek',
@@ -216,6 +217,13 @@ function getConfig(): ServerConfig {
   return config;
 }
 
+function getLLMProviderEntry(providerId: string): ServerProviderEntry | undefined {
+  const providers = getConfig().providers;
+  return (
+    providers[providerId] || (providerId === 'openai-responses' ? providers.openai : undefined)
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Public API — LLM
 // ---------------------------------------------------------------------------
@@ -229,24 +237,29 @@ export function getServerProviders(): Record<string, { models?: string[]; baseUr
     if (entry.models && entry.models.length > 0) result[id].models = entry.models;
     if (entry.baseUrl) result[id].baseUrl = entry.baseUrl;
   }
+
+  if (!result['openai-responses'] && result.openai) {
+    result['openai-responses'] = result.openai.baseUrl ? { baseUrl: result.openai.baseUrl } : {};
+  }
+
   return result;
 }
 
 /** Resolve API key: client key > server key > empty string */
 export function resolveApiKey(providerId: string, clientKey?: string): string {
   if (clientKey) return clientKey;
-  return getConfig().providers[providerId]?.apiKey || '';
+  return getLLMProviderEntry(providerId)?.apiKey || '';
 }
 
 /** Resolve base URL: client > server > undefined */
 export function resolveBaseUrl(providerId: string, clientBaseUrl?: string): string | undefined {
   if (clientBaseUrl) return clientBaseUrl;
-  return getConfig().providers[providerId]?.baseUrl;
+  return getLLMProviderEntry(providerId)?.baseUrl;
 }
 
 /** Resolve proxy URL for a provider (server config only) */
 export function resolveProxy(providerId: string): string | undefined {
-  return getConfig().providers[providerId]?.proxy;
+  return getLLMProviderEntry(providerId)?.proxy;
 }
 
 // ---------------------------------------------------------------------------

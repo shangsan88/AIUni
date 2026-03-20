@@ -7,6 +7,7 @@
  */
 export type BuiltInProviderId =
   | 'openai'
+  | 'openai-responses'
   | 'anthropic'
   | 'google'
   | 'deepseek'
@@ -26,7 +27,7 @@ export type ProviderId = BuiltInProviderId | `custom-${string}`;
 /**
  * Provider API types
  */
-export type ProviderType = 'openai' | 'anthropic' | 'google';
+export type ProviderType = 'openai' | 'openai-responses' | 'anthropic' | 'google';
 
 /**
  * Describes a model's thinking/reasoning API control capability.

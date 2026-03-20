@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import type { ProviderConfig } from '@/lib/ai/providers';
+import { normalizeOpenAIResponsesBaseUrl } from '@/lib/ai/openai-responses';
 import type { ProvidersConfig } from '@/lib/types/settings';
 import { formatContextWindow } from './utils';
 import { cn } from '@/lib/utils';
@@ -261,11 +262,16 @@ export function ProviderConfigPanel({
           const effectiveBaseUrl = baseUrl || provider.defaultBaseUrl || '';
           if (!effectiveBaseUrl) return null;
 
-          // Generate endpoint path based on provider type
+          let normalizedBaseUrl = effectiveBaseUrl;
           let endpointPath = '';
           switch (provider.type) {
             case 'openai':
               endpointPath = '/chat/completions';
+              break;
+            case 'openai-responses':
+              normalizedBaseUrl =
+                normalizeOpenAIResponsesBaseUrl(effectiveBaseUrl) || effectiveBaseUrl;
+              endpointPath = '/responses';
               break;
             case 'anthropic':
               endpointPath = '/messages';
@@ -277,7 +283,7 @@ export function ProviderConfigPanel({
               endpointPath = '';
           }
 
-          const fullUrl = effectiveBaseUrl + endpointPath;
+          const fullUrl = normalizedBaseUrl + endpointPath;
 
           return (
             <p className="text-xs text-muted-foreground break-all">
