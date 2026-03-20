@@ -47,49 +47,13 @@ export const TTS_PROVIDERS: Record<TTSProviderId, TTSProviderConfig> = {
     defaultBaseUrl: 'https://api.openai.com/v1',
     icon: '/logos/openai.svg',
     voices: [
-      // Recommended voices (best quality)
-      {
-        id: 'marin',
-        name: 'Marin',
-        language: 'en',
-        gender: 'neutral',
-        description: 'voiceMarin',
-      },
-      {
-        id: 'cedar',
-        name: 'Cedar',
-        language: 'en',
-        gender: 'neutral',
-        description: 'voiceCedar',
-      },
-      // Standard voices (alphabetical)
+      // tts-1 supported voices
       {
         id: 'alloy',
         name: 'Alloy',
         language: 'en',
         gender: 'neutral',
         description: 'voiceAlloy',
-      },
-      {
-        id: 'ash',
-        name: 'Ash',
-        language: 'en',
-        gender: 'neutral',
-        description: 'voiceAsh',
-      },
-      {
-        id: 'ballad',
-        name: 'Ballad',
-        language: 'en',
-        gender: 'neutral',
-        description: 'voiceBallad',
-      },
-      {
-        id: 'coral',
-        name: 'Coral',
-        language: 'en',
-        gender: 'neutral',
-        description: 'voiceCoral',
       },
       {
         id: 'echo',
@@ -120,25 +84,11 @@ export const TTS_PROVIDERS: Record<TTSProviderId, TTSProviderConfig> = {
         description: 'voiceOnyx',
       },
       {
-        id: 'sage',
-        name: 'Sage',
-        language: 'en',
-        gender: 'neutral',
-        description: 'voiceSage',
-      },
-      {
         id: 'shimmer',
         name: 'Shimmer',
         language: 'en',
         gender: 'female',
         description: 'voiceShimmer',
-      },
-      {
-        id: 'verse',
-        name: 'Verse',
-        language: 'en',
-        gender: 'neutral',
-        description: 'voiceVerse',
       },
     ],
     supportedFormats: ['mp3', 'opus', 'aac', 'flac'],
