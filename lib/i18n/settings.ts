@@ -217,7 +217,7 @@ export const settingsZhCN = {
     enterCustomBaseUrl: '输入自定义 Base URL',
     browserNativeNote: '浏览器原生 ASR 无需配置，完全免费',
     // Audio provider names
-    providerOpenAITTS: 'OpenAI TTS (gpt-4o-mini-tts)',
+    providerOpenAITTS: 'OpenAI TTS (tts-1)',
     providerAzureTTS: 'Azure TTS',
     providerGLMTTS: 'GLM TTS',
     providerQwenTTS: 'Qwen TTS（阿里云百炼）',
@@ -805,7 +805,7 @@ export const settingsEnUS = {
     enterCustomBaseUrl: 'Enter custom Base URL',
     browserNativeNote: 'Browser Native ASR requires no configuration and is completely free',
     // Audio provider names
-    providerOpenAITTS: 'OpenAI TTS (gpt-4o-mini-tts)',
+    providerOpenAITTS: 'OpenAI TTS (tts-1)',
     providerAzureTTS: 'Azure TTS',
     providerGLMTTS: 'GLM TTS',
     providerQwenTTS: 'Qwen TTS (Alibaba Cloud Bailian)',

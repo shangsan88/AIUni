@@ -42,7 +42,7 @@ export const settingsHiIN = {
     providerBrowserNative: 'ब्राउज़र नेटिव ASR',
     providerBrowserNativeTTS: 'ब्राउज़र नेटिव TTS',
     providerOpenAIWhisper: 'OpenAI ASR (gpt-4o-mini-transcribe)',
-    providerOpenAITTS: 'OpenAI TTS (gpt-4o-mini-tts)',
+    providerOpenAITTS: 'OpenAI TTS (tts-1)',
     providerAzureTTS: 'Azure TTS',
     providerGLMTTS: 'GLM TTS',
     providerQwenTTS: 'Qwen TTS',
