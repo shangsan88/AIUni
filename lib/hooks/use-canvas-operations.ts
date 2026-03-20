@@ -371,7 +371,7 @@ export function useCanvasOperations() {
     if (!firstGroupId) return true;
 
     const inSameGroup = activeElementList.every(
-      (el) => (el.groupId && el.groupId) === firstGroupId,
+      (el) => el.groupId && el.groupId === firstGroupId,
     );
     return !inSameGroup;
   }, [activeElementList]);
