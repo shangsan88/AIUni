@@ -395,6 +395,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
           currentSceneId: freshState.currentSceneId,
           mode: freshState.mode,
           whiteboardOpen: useCanvasStore.getState().whiteboardOpen,
+          assessmentContext: freshState.latestAssessmentContext,
         };
 
         const response = await fetch('/api/chat', {
@@ -759,6 +760,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
               currentSceneId: currentState.currentSceneId,
               mode: currentState.mode,
               whiteboardOpen: useCanvasStore.getState().whiteboardOpen,
+              assessmentContext: currentState.latestAssessmentContext,
             },
             config: {
               agentIds,
@@ -994,6 +996,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
               currentSceneId: currentState.currentSceneId,
               mode: currentState.mode,
               whiteboardOpen: useCanvasStore.getState().whiteboardOpen,
+              assessmentContext: currentState.latestAssessmentContext,
             },
             config: {
               agentIds,
@@ -1147,6 +1150,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
               currentSceneId: currentState.currentSceneId,
               mode: currentState.mode,
               whiteboardOpen: useCanvasStore.getState().whiteboardOpen,
+              assessmentContext: currentState.latestAssessmentContext,
             },
             config: {
               agentIds,
