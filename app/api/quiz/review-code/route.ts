@@ -2,33 +2,6 @@ import { NextRequest } from 'next/server';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { buildCodeReviewPrompt } from '@/lib/quiz/prompts';
 import { callQuizLLM } from '@/lib/quiz/llm';
-import type { CodeReviewResult } from '@/lib/quiz/types';
-import { parseFirstJsonObject } from '@/lib/server/json-parser';
-
-function normalizeReviewResult(input: Partial<CodeReviewResult>): CodeReviewResult {
-  const score = Number.isFinite(input.score) ? Math.round(Number(input.score)) : 0;
-  const normalizedScore = Math.max(0, Math.min(100, score));
-  const verdict =
-    input.verdict === 'strong' || input.verdict === 'partial' || input.verdict === 'incorrect'
-      ? input.verdict
-      : normalizedScore >= 80
-        ? 'strong'
-        : normalizedScore >= 60
-          ? 'partial'
-          : 'incorrect';
-
-  return {
-    summary: input.summary || 'No review summary returned.',
-    strengths: Array.isArray(input.strengths) ? input.strengths : [],
-    missingPoints: Array.isArray(input.missingPoints) ? input.missingPoints : [],
-    optimalApproach: input.optimalApproach || 'No optimal approach returned.',
-    timeComplexity: input.timeComplexity || 'Unknown',
-    spaceComplexity: input.spaceComplexity || 'Unknown',
-    cleanerVersion: input.cleanerVersion,
-    score: normalizedScore,
-    verdict,
-  };
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -44,8 +17,17 @@ export async function POST(req: NextRequest) {
       buildCodeReviewPrompt(body),
       'quiz-review-code',
     );
-    const parsed = parseFirstJsonObject<Partial<CodeReviewResult>>(result.text);
-    return apiSuccess(normalizeReviewResult(parsed));
+    const jsonMatch = result.text.trim().match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return apiError('INVALID_RESPONSE', 502, 'Reviewer returned no JSON');
+    }
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (typeof parsed.score !== 'number' || !parsed.verdict) {
+      return apiError('INVALID_RESPONSE', 502, 'Reviewer response missing required fields');
+    }
+    parsed.score = Math.max(0, Math.min(10, Math.round(parsed.score)));
+    parsed.verdict = parsed.score >= 5 ? 'pass' : 'fail';
+    return apiSuccess(parsed);
   } catch (error) {
     return apiError(
       'INTERNAL_ERROR',

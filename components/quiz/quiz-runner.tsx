@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import type { CodeReviewResult, CodingQuizSession, PlacementQuizSession } from '@/lib/quiz/types';
 import { QuizTimer } from './quiz-timer';
-import { scoreCodingQuiz, scorePlacementQuiz, estimatePercentile } from '@/lib/quiz/scoring';
+import { scorePlacementQuiz, estimatePercentile } from '@/lib/quiz/scoring';
 import { saveQuizHistoryItem } from '@/lib/quiz/storage';
 import { CodeProblemCard } from './code-problem-card';
 import { QuizResults } from './quiz-results';
@@ -39,11 +39,6 @@ export function QuizRunner({ session, onBack }: { session: PlacementQuizSession 
     if (session.track !== 'placement-aptitude') return null;
     return scorePlacementQuiz(session.questions, placementAnswers);
   }, [placementAnswers, session]);
-
-  const codingScore = useMemo(() => {
-    if (session.track !== 'coding-examination') return null;
-    return scoreCodingQuiz(session.problems, codeReviews);
-  }, [codeReviews, session]);
 
   const handleSubmit = async () => {
     if (submitted) return;
@@ -92,26 +87,29 @@ export function QuizRunner({ session, onBack }: { session: PlacementQuizSession 
           }),
         );
         setCodeReviews(reviews);
-        const codingScore = scoreCodingQuiz(session.problems, reviews);
+        const passed = reviews.filter((r) => r.review.verdict === 'pass').length;
+        const total = session.problems.length;
+        const percentage = total ? Math.round((passed / total) * 100) : 0;
+        const weakAreas = session.problems
+          .filter((p) => {
+            const r = reviews.find((rv) => rv.id === p.id);
+            return !r || r.review.verdict === 'fail' || (r.review.score ?? 10) < 5;
+          })
+          .map((p) => p.topic);
         saveQuizHistoryItem({
           id: crypto.randomUUID(),
           track: session.track,
           title: session.title,
-          score: codingScore.score,
-          total: session.problems.length,
-          percentage: codingScore.percentage,
-          weakAreas: codingScore.weakAreas,
+          score: passed,
+          total,
+          percentage,
+          weakAreas,
           createdAt: Date.now(),
           metadata: { language: session.language, difficulty: session.difficulty },
         });
         setDebrief({
-          summary:
-            codingScore.averageReviewScore >= 80
-              ? 'Strong coding round. Keep refining communication and edge-case explanation quality.'
-              : codingScore.averageReviewScore >= 60
-                ? 'Mixed performance. You showed some correct direction, but several solutions were incomplete or not interview-ready.'
-                : 'Needs work. Several submissions were incomplete, incorrect, or too skeletal to earn credit.',
-          percentileEstimate: `Average review score: ${codingScore.averageReviewScore}/100`,
+          summary: 'AI review completed. Focus on writing cleaner edge-case handling, stronger complexity explanations, and a more systematic optimal approach.',
+          percentileEstimate: 'Interview-style qualitative review',
         });
       }
       setSubmitted(true);
@@ -192,8 +190,13 @@ export function QuizRunner({ session, onBack }: { session: PlacementQuizSession 
         </QuizResults>
       ) : null}
 
-      {submitted && session.track === 'coding-examination' && codingScore ? (
-        <QuizResults title="Coding Examination" score={codingScore.score} total={session.problems.length} debrief={debrief}>
+      {submitted && session.track === 'coding-examination' ? (
+        <QuizResults
+          title="Coding Examination"
+          score={codeReviews.filter((r) => r.review.verdict === 'pass').length}
+          total={session.problems.length}
+          debrief={debrief}
+        >
           <CodeReviewPanel reviews={codeReviews} />
         </QuizResults>
       ) : null}

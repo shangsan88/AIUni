@@ -87,6 +87,8 @@ export interface PlacementDebrief {
 }
 
 export interface CodeReviewResult {
+  score: number;
+  verdict: 'pass' | 'fail';
   summary: string;
   strengths: string[];
   missingPoints: string[];
