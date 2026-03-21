@@ -26,6 +26,7 @@ interface ChatAreaProps {
   onSpeechProgress?: (ratio: number | null) => void;
   onThinking?: (state: { stage: string; agentId?: string } | null) => void;
   onCueUser?: (fromAgentId?: string, prompt?: string) => void;
+  onLiveSessionError?: () => void;
   onStopSession?: () => void;
   currentSceneId?: string | null;
 }
@@ -66,6 +67,7 @@ export const ChatArea = forwardRef<ChatAreaRef, ChatAreaProps>(
       onSpeechProgress,
       onThinking,
       onCueUser,
+      onLiveSessionError,
       onStopSession,
       currentSceneId,
     },
@@ -97,6 +99,7 @@ export const ChatArea = forwardRef<ChatAreaRef, ChatAreaProps>(
       onThinking,
       onCueUser,
       onActiveBubble,
+      onLiveSessionError,
       onStopSession,
     });
 
