@@ -615,7 +615,8 @@ export const settingsRuRU = {
     conversationSettings: 'Настройки диалога',
     keyboardShortcuts: 'Горячие клавиши',
     providers: 'LLM',
-    addProviderDescription: 'Добавь своих провайдеров моделей, чтобы расширить список доступных AI-моделей',
+    addProviderDescription:
+      'Добавь своих провайдеров моделей, чтобы расширить список доступных AI-моделей',
     addProvider: 'Добавить',
     addProviderButton: 'Добавить провайдера',
     addProviderDialog: 'Добавить провайдера моделей',
