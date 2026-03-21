@@ -49,6 +49,7 @@ export interface SettingsState {
     {
       apiKey: string;
       baseUrl: string;
+      model?: string;
       enabled: boolean;
       isServerConfigured?: boolean;
       serverBaseUrl?: string;
@@ -177,7 +178,7 @@ export interface SettingsState {
   setASRLanguage: (language: string) => void;
   setTTSProviderConfig: (
     providerId: TTSProviderId,
-    config: Partial<{ apiKey: string; baseUrl: string; enabled: boolean }>,
+    config: Partial<{ apiKey: string; baseUrl: string; model?: string; enabled: boolean }>,
   ) => void;
   setASRProviderConfig: (
     providerId: ASRProviderId,
@@ -266,8 +267,9 @@ const getDefaultAudioConfig = () => ({
     'azure-tts': { apiKey: '', baseUrl: '', enabled: false },
     'glm-tts': { apiKey: '', baseUrl: '', enabled: false },
     'qwen-tts': { apiKey: '', baseUrl: '', enabled: false },
+    'minimax-tts': { apiKey: '', baseUrl: '', model: 'speech-2.8-turbo', enabled: false },
     'browser-native-tts': { apiKey: '', baseUrl: '', enabled: true },
-  } as Record<TTSProviderId, { apiKey: string; baseUrl: string; enabled: boolean }>,
+  } as Record<TTSProviderId, { apiKey: string; baseUrl: string; model?: string; enabled: boolean }>,
   asrProvidersConfig: {
     'openai-whisper': { apiKey: '', baseUrl: '', enabled: true },
     'browser-native': { apiKey: '', baseUrl: '', enabled: true },

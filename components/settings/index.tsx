@@ -121,6 +121,7 @@ function getTTSProviderName(providerId: TTSProviderId, t: (key: string) => strin
     'azure-tts': t('settings.providerAzureTTS'),
     'glm-tts': t('settings.providerGLMTTS'),
     'qwen-tts': t('settings.providerQwenTTS'),
+    'minimax-tts': t('settings.providerMiniMaxTTS'),
     'browser-native-tts': t('settings.providerBrowserNativeTTS'),
   };
   return names[providerId];
@@ -140,12 +141,14 @@ const IMAGE_PROVIDER_NAMES: Record<ImageProviderId, string> = {
   seedream: 'providerSeedream',
   'qwen-image': 'providerQwenImage',
   'nano-banana': 'providerNanoBanana',
+  'minimax-image': 'providerMiniMaxImage',
 };
 
 const IMAGE_PROVIDER_ICONS: Record<ImageProviderId, string> = {
   seedream: '/logos/doubao.svg',
   'qwen-image': '/logos/bailian.svg',
   'nano-banana': '/logos/gemini.svg',
+  'minimax-image': '/logos/minimax.svg',
 };
 
 const VIDEO_PROVIDER_NAMES: Record<VideoProviderId, string> = {
@@ -153,6 +156,7 @@ const VIDEO_PROVIDER_NAMES: Record<VideoProviderId, string> = {
   kling: 'providerKling',
   veo: 'providerVeo',
   sora: 'providerSora',
+  'minimax-video': 'providerMiniMaxVideo',
 };
 
 const VIDEO_PROVIDER_ICONS: Record<VideoProviderId, string> = {
@@ -160,6 +164,7 @@ const VIDEO_PROVIDER_ICONS: Record<VideoProviderId, string> = {
   kling: '/logos/kling.svg',
   veo: '/logos/gemini.svg',
   sora: '/logos/openai.svg',
+  'minimax-video': '/logos/minimax.svg',
 };
 
 interface SettingsDialogProps {

@@ -109,11 +109,30 @@ providers:
     apiKey: sk-ant-...
 ```
 
-支持的服务商：**OpenAI**、**Anthropic**、**Google Gemini**、**DeepSeek** 以及任何兼容 OpenAI API 的服务。
+支持的服务商：**OpenAI**、**Anthropic**、**Google Gemini**、**DeepSeek**、**MiniMax** 以及任何兼容 OpenAI API 的服务。
+
+MiniMax 快速示例：
+
+```env
+MINIMAX_API_KEY=...
+MINIMAX_BASE_URL=https://api.minimaxi.com
+DEFAULT_MODEL=minimax:MiniMax-M2.7-highspeed
+
+TTS_MINIMAX_API_KEY=...
+TTS_MINIMAX_BASE_URL=https://api.minimax.com
+
+IMAGE_MINIMAX_API_KEY=...
+IMAGE_MINIMAX_BASE_URL=https://api.minimaxi.com
+
+VIDEO_MINIMAX_API_KEY=...
+VIDEO_MINIMAX_BASE_URL=https://api.minimax.io
+```
 
 > **推荐模型：** **Gemini 3 Flash** — 效果与速度的最佳平衡。追求最高质量可选 **Gemini 3.1 Pro**（速度较慢）。
 >
 > 如果希望 OpenMAIC 服务端默认走 Gemini，还需要额外设置 `DEFAULT_MODEL=google:gemini-3-flash-preview`。
+>
+> 如果希望默认走 MiniMax，可设置 `DEFAULT_MODEL=minimax:MiniMax-M2.7-highspeed`。
 
 ### 3. 启动
 
