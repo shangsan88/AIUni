@@ -196,6 +196,7 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
         speed: ttsSpeed,
         apiKey: providerConfig?.apiKey,
         baseUrl: providerConfig?.baseUrl,
+        model: providerConfig?.model,
       });
     } catch (error) {
       const message =
