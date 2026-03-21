@@ -46,6 +46,11 @@ export const TTS_PROVIDERS: Record<TTSProviderId, TTSProviderConfig> = {
     requiresApiKey: true,
     defaultBaseUrl: 'https://api.openai.com/v1',
     icon: '/logos/openai.svg',
+    models: [
+      { id: 'gpt-4o-mini-tts', name: 'GPT-4o Mini TTS' },
+      { id: 'tts-1', name: 'TTS-1' },
+      { id: 'tts-1-hd', name: 'TTS-1 HD' },
+    ],
     voices: [
       // Recommended voices (best quality)
       {
@@ -151,6 +156,7 @@ export const TTS_PROVIDERS: Record<TTSProviderId, TTSProviderConfig> = {
     requiresApiKey: true,
     defaultBaseUrl: 'https://{region}.tts.speech.microsoft.com',
     icon: '/logos/azure.svg',
+    models: [{ id: 'azure-neural-tts', name: 'Azure Neural TTS' }],
     voices: [
       {
         id: 'zh-CN-XiaoxiaoNeural',
@@ -194,6 +200,7 @@ export const TTS_PROVIDERS: Record<TTSProviderId, TTSProviderConfig> = {
     requiresApiKey: true,
     defaultBaseUrl: 'https://open.bigmodel.cn/api/paas/v4',
     icon: '/logos/glm.svg',
+    models: [{ id: 'glm-tts', name: 'GLM TTS' }],
     voices: [
       {
         id: 'tongtong',
@@ -255,6 +262,7 @@ export const TTS_PROVIDERS: Record<TTSProviderId, TTSProviderConfig> = {
     requiresApiKey: true,
     defaultBaseUrl: 'https://dashscope.aliyuncs.com/api/v1',
     icon: '/logos/bailian.svg',
+    models: [{ id: 'qwen3-tts-flash', name: 'Qwen3 TTS Flash' }],
     voices: [
       // Standard Mandarin voices
       {
@@ -611,6 +619,7 @@ export const TTS_PROVIDERS: Record<TTSProviderId, TTSProviderConfig> = {
     name: '浏览器原生 (Web Speech API)',
     requiresApiKey: false,
     icon: '/logos/browser.svg',
+    models: [{ id: 'browser-native-tts', name: 'Browser Native TTS' }],
     voices: [
       // Note: Actual voices are determined by the browser and OS
       // These are placeholder - real voices are fetched dynamically via speechSynthesis.getVoices()
@@ -634,6 +643,11 @@ export const ASR_PROVIDERS: Record<ASRProviderId, ASRProviderConfig> = {
     requiresApiKey: true,
     defaultBaseUrl: 'https://api.openai.com/v1',
     icon: '/logos/openai.svg',
+    models: [
+      { id: 'gpt-4o-mini-transcribe', name: 'GPT-4o Mini Transcribe' },
+      { id: 'gpt-4o-transcribe', name: 'GPT-4o Transcribe' },
+      { id: 'whisper-1', name: 'Whisper-1' },
+    ],
     supportedLanguages: [
       // OpenAI Whisper supports 58 languages (as of official docs)
       // Source: https://platform.openai.com/docs/guides/speech-to-text
@@ -707,6 +721,7 @@ export const ASR_PROVIDERS: Record<ASRProviderId, ASRProviderConfig> = {
     requiresApiKey: true,
     defaultBaseUrl: 'https://dashscope.aliyuncs.com/api/v1',
     icon: '/logos/bailian.svg',
+    models: [{ id: 'qwen3-asr-flash', name: 'Qwen3 ASR Flash' }],
     supportedLanguages: [
       // Qwen ASR supports 27 languages + auto-detect
       // If language is uncertain or mixed (e.g. Chinese-English-Japanese-Korean), use "auto" (do not specify language parameter)
@@ -749,6 +764,7 @@ export const ASR_PROVIDERS: Record<ASRProviderId, ASRProviderConfig> = {
     name: '浏览器原生 ASR (Web Speech API)',
     requiresApiKey: false,
     icon: '/logos/browser.svg',
+    models: [{ id: 'browser-native-asr', name: 'Browser Native ASR' }],
     supportedLanguages: [
       // Chinese variants
       'zh-CN', // Mandarin (Simplified, China)
@@ -843,6 +859,10 @@ export function getTTSVoices(providerId: TTSProviderId): TTSVoiceInfo[] {
   return TTS_PROVIDERS[providerId]?.voices || [];
 }
 
+export function getTTSModels(providerId: TTSProviderId): Array<{ id: string; name: string }> {
+  return TTS_PROVIDERS[providerId]?.models || [];
+}
+
 /**
  * Get all available ASR providers
  */
@@ -862,4 +882,8 @@ export function getASRProvider(providerId: ASRProviderId): ASRProviderConfig | u
  */
 export function getASRSupportedLanguages(providerId: ASRProviderId): string[] {
   return ASR_PROVIDERS[providerId]?.supportedLanguages || [];
+}
+
+export function getASRModels(providerId: ASRProviderId): Array<{ id: string; name: string }> {
+  return ASR_PROVIDERS[providerId]?.models || [];
 }

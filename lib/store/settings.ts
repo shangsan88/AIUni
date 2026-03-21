@@ -9,7 +9,7 @@ import type { ProviderId } from '@/lib/ai/providers';
 import type { ProvidersConfig } from '@/lib/types/settings';
 import { PROVIDERS } from '@/lib/ai/providers';
 import type { TTSProviderId, ASRProviderId } from '@/lib/audio/types';
-import { ASR_PROVIDERS, DEFAULT_TTS_VOICES } from '@/lib/audio/constants';
+import { ASR_PROVIDERS, DEFAULT_TTS_VOICES, TTS_PROVIDERS } from '@/lib/audio/constants';
 import type { PDFProviderId } from '@/lib/pdf/types';
 import type { ImageProviderId, VideoProviderId } from '@/lib/media/types';
 import { IMAGE_PROVIDERS } from '@/lib/media/image-providers';
@@ -36,9 +36,11 @@ export interface SettingsState {
 
   // Audio settings (new unified audio configuration)
   ttsProviderId: TTSProviderId;
+  ttsModelId: string;
   ttsVoice: string;
   ttsSpeed: number;
   asrProviderId: ASRProviderId;
+  asrModelId: string;
   asrLanguage: string;
 
   // Audio provider configurations
@@ -48,6 +50,7 @@ export interface SettingsState {
       apiKey: string;
       baseUrl: string;
       enabled: boolean;
+      customModels?: Array<{ id: string; name: string }>;
       isServerConfigured?: boolean;
       serverBaseUrl?: string;
     }
@@ -59,6 +62,7 @@ export interface SettingsState {
       apiKey: string;
       baseUrl: string;
       enabled: boolean;
+      customModels?: Array<{ id: string; name: string }>;
       isServerConfigured?: boolean;
       serverBaseUrl?: string;
     }
@@ -169,17 +173,29 @@ export interface SettingsState {
 
   // Audio actions
   setTTSProvider: (providerId: TTSProviderId) => void;
+  setTTSModelId: (modelId: string) => void;
   setTTSVoice: (voice: string) => void;
   setTTSSpeed: (speed: number) => void;
   setASRProvider: (providerId: ASRProviderId) => void;
+  setASRModelId: (modelId: string) => void;
   setASRLanguage: (language: string) => void;
   setTTSProviderConfig: (
     providerId: TTSProviderId,
-    config: Partial<{ apiKey: string; baseUrl: string; enabled: boolean }>,
+    config: Partial<{
+      apiKey: string;
+      baseUrl: string;
+      enabled: boolean;
+      customModels: Array<{ id: string; name: string }>;
+    }>,
   ) => void;
   setASRProviderConfig: (
     providerId: ASRProviderId,
-    config: Partial<{ apiKey: string; baseUrl: string; enabled: boolean }>,
+    config: Partial<{
+      apiKey: string;
+      baseUrl: string;
+      enabled: boolean;
+      customModels: Array<{ id: string; name: string }>;
+    }>,
   ) => void;
   setTTSEnabled: (enabled: boolean) => void;
   setASREnabled: (enabled: boolean) => void;
@@ -255,9 +271,11 @@ const getDefaultProvidersConfig = (): ProvidersConfig => {
 // Initialize default audio config
 const getDefaultAudioConfig = () => ({
   ttsProviderId: 'browser-native-tts' as TTSProviderId,
+  ttsModelId: 'browser-native-tts',
   ttsVoice: 'default',
   ttsSpeed: 1.0,
   asrProviderId: 'browser-native' as ASRProviderId,
+  asrModelId: 'browser-native-asr',
   asrLanguage: 'zh',
   ttsProvidersConfig: {
     'openai-tts': { apiKey: '', baseUrl: '', enabled: true },
@@ -520,9 +538,12 @@ export const useSettingsStore = create<SettingsState>()(
             const shouldUpdateVoice = state.ttsProviderId !== providerId;
             return {
               ttsProviderId: providerId,
+              ttsModelId: TTS_PROVIDERS[providerId]?.models[0]?.id || '',
               ...(shouldUpdateVoice && { ttsVoice: DEFAULT_TTS_VOICES[providerId] }),
             };
           }),
+
+        setTTSModelId: (modelId) => set({ ttsModelId: modelId }),
 
         setTTSVoice: (voice) => set({ ttsVoice: voice }),
 
@@ -536,9 +557,12 @@ export const useSettingsStore = create<SettingsState>()(
             const isLanguageValid = supportedLanguages.includes(state.asrLanguage);
             return {
               asrProviderId: providerId,
+              asrModelId: ASR_PROVIDERS[providerId]?.models[0]?.id || '',
               ...(isLanguageValid ? {} : { asrLanguage: supportedLanguages[0] || 'auto' }),
             };
           }),
+
+        setASRModelId: (modelId) => set({ asrModelId: modelId }),
 
         setASRLanguage: (language) => set({ asrLanguage: language }),
 
@@ -975,6 +999,16 @@ export const useSettingsStore = create<SettingsState>()(
         if (!state.ttsProvidersConfig || !state.asrProvidersConfig) {
           const defaultAudioConfig = getDefaultAudioConfig();
           Object.assign(state, defaultAudioConfig);
+        }
+
+        if (!state.ttsModelId) {
+          const providerId = state.ttsProviderId || ('browser-native-tts' as TTSProviderId);
+          state.ttsModelId = TTS_PROVIDERS[providerId]?.models[0]?.id || '';
+        }
+
+        if (!state.asrModelId) {
+          const providerId = state.asrProviderId || ('browser-native' as ASRProviderId);
+          state.asrModelId = ASR_PROVIDERS[providerId]?.models[0]?.id || '';
         }
 
         // Add default PDF config if missing
