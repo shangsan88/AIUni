@@ -121,10 +121,8 @@ export function normalizeVideoOptions(
       !normalized.aspectRatio ||
       !provider.supportedAspectRatios.includes(normalized.aspectRatio)
     ) {
-      normalized.aspectRatio =
-        normalized.aspectRatio && provider.supportedAspectRatios.includes(normalized.aspectRatio)
-          ? normalized.aspectRatio
-          : (provider.supportedAspectRatios[0] as VideoGenerationOptions['aspectRatio']);
+      normalized.aspectRatio = provider
+        .supportedAspectRatios[0] as VideoGenerationOptions['aspectRatio'];
     }
   }
 
