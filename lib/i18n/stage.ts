@@ -7,6 +7,8 @@ export const stageZhCN = {
     confirmSwitchTitle: '切换页面',
     confirmSwitchMessage: '当前话题正在进行中，切换页面将结束当前话题。确定要切换吗？',
     generatingNextPage: '场景正在生成，请稍候...',
+    fullscreen: '全屏',
+    exitFullscreen: '退出全屏',
   },
   whiteboard: {
     title: '互动白板',
@@ -72,6 +74,11 @@ export const stageZhCN = {
     autoPlay: '自动播放',
     autoPlayOff: '关闭自动播放',
     speed: '倍速',
+    voiceInput: '语音输入',
+    voiceInputDisabled: '语音输入已禁用',
+    textInput: '文字输入',
+    stopRecording: '停止录音',
+    startRecording: '开始录音',
   },
   pbl: {
     legacyFormat: '此PBL场景使用旧格式，请重新生成课程',
@@ -153,6 +160,8 @@ export const stageEnUS = {
     confirmSwitchMessage:
       'A topic is currently in progress. Switching scenes will end the current topic. Are you sure?',
     generatingNextPage: 'Scene is being generated, please wait...',
+    fullscreen: 'Fullscreen',
+    exitFullscreen: 'Exit Fullscreen',
   },
   whiteboard: {
     title: 'Interactive Whiteboard',
@@ -218,6 +227,11 @@ export const stageEnUS = {
     autoPlay: 'Auto-play',
     autoPlayOff: 'Stop auto-play',
     speed: 'Speed',
+    voiceInput: 'Voice input',
+    voiceInputDisabled: 'Voice input disabled',
+    textInput: 'Text input',
+    stopRecording: 'Stop recording',
+    startRecording: 'Start recording',
   },
   pbl: {
     legacyFormat: 'This PBL scene uses a legacy format. Please regenerate the course.',
