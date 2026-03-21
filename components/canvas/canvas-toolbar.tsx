@@ -384,31 +384,32 @@ export function CanvasToolbar({
               <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-violet-500 dark:bg-violet-400 rounded-full" />
             )}
           </button>
+
+          {onTogglePresentation && (
+            <button
+              onClick={onTogglePresentation}
+              className={cn(
+                ctrlBtn,
+                'w-6 h-6',
+                isPresenting
+                  ? 'text-violet-600 dark:text-violet-400'
+                  : 'text-gray-500 dark:text-gray-400',
+              )}
+              aria-label={presentationLabel}
+              title={presentationLabel}
+            >
+              {isPresenting ? (
+                <Minimize2 className="w-3.5 h-3.5" />
+              ) : (
+                <Maximize2 className="w-3.5 h-3.5" />
+              )}
+            </button>
+          )}
         </div>
       </div>
 
       {/* ── Right: chat toggle ── */}
       <div className="flex items-center justify-end gap-px shrink-0 pr-1">
-        {onTogglePresentation && (
-          <button
-            onClick={onTogglePresentation}
-            className={cn(
-              ctrlBtn,
-              'w-6 h-6',
-              isPresenting
-                ? 'text-violet-600 dark:text-violet-400'
-                : 'text-gray-600 dark:text-gray-300',
-            )}
-            aria-label={presentationLabel}
-            title={presentationLabel}
-          >
-            {isPresenting ? (
-              <Minimize2 className="w-3.5 h-3.5" />
-            ) : (
-              <Maximize2 className="w-3.5 h-3.5" />
-            )}
-          </button>
-        )}
         {onToggleChat && (
           <button
             onClick={onToggleChat}

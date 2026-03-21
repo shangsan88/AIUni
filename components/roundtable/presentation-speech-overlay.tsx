@@ -2,12 +2,14 @@
 
 import { AnimatePresence, motion } from 'motion/react';
 import { useI18n } from '@/lib/hooks/use-i18n';
+import { AvatarDisplay } from '@/components/ui/avatar-display';
 import type { PlaybackView } from '@/lib/playback';
 import type { Participant } from '@/lib/types/roundtable';
 import { cn } from '@/lib/utils';
 
 const DEFAULT_TEACHER_AVATAR = '/avatars/teacher.png';
 const DEFAULT_STUDENT_AVATAR = '/avatars/user.png';
+const PRESENTATION_BUBBLE_WIDTH = 'w-[min(420px,calc(100vw-3rem))]';
 
 interface PresentationSpeechOverlayProps {
   readonly playbackView: PlaybackView;
@@ -28,14 +30,6 @@ export interface PresentationBubbleModel {
   text: string;
   isLoading: boolean;
   isTopicPending: boolean;
-}
-
-function AvatarDisplay({ src, alt }: { src: string; alt?: string }) {
-  const isUrl = src.startsWith('http') || src.startsWith('data:') || src.startsWith('/');
-  if (isUrl) {
-    return <img src={src} alt={alt || ''} className="w-full h-full object-cover" />;
-  }
-  return <span className="flex items-center justify-center w-full h-full select-none">{src}</span>;
 }
 
 export function buildPresentationBubbleModel({
@@ -124,7 +118,7 @@ export function PresentationBubbleCard({ bubble }: { readonly bubble: Presentati
   return (
     <div
       className={cn(
-        'min-w-[220px] max-w-full rounded-3xl border backdrop-blur-xl shadow-[0_18px_50px_-20px_rgba(0,0,0,0.45)] overflow-hidden',
+        'w-full min-w-0 rounded-3xl border backdrop-blur-xl shadow-[0_18px_50px_-20px_rgba(0,0,0,0.45)] overflow-hidden',
         bubble.role === 'user'
           ? 'bg-violet-50/90 dark:bg-violet-950/55 border-violet-200/70 dark:border-violet-800/60'
           : bubble.role === 'agent'
@@ -168,7 +162,7 @@ export function PresentationBubbleCard({ bubble }: { readonly bubble: Presentati
         </div>
       </div>
 
-      <div className="px-4 pb-3 max-h-[120px] overflow-y-auto scrollbar-hide">
+      <div className="px-4 pb-3 max-h-[120px] overflow-hidden">
         {bubble.isLoading ? (
           <div className="flex gap-1 items-center py-1">
             {[0, 0.2, 0.4].map((delay) => (
@@ -234,7 +228,7 @@ export function PresentationSpeechOverlay({
               animate={{ opacity: 1, x: 0, y: 0 }}
               exit={{ opacity: 0, y: 8 }}
               transition={{ duration: 0.22, ease: [0.21, 1, 0.36, 1] }}
-              className="absolute bottom-6 left-6 z-30 max-w-[min(420px,calc(100vw-3rem))]"
+              className={cn('absolute bottom-6 left-6 z-30', PRESENTATION_BUBBLE_WIDTH)}
             >
               <PresentationBubbleCard bubble={bubble} />
             </motion.div>
@@ -254,7 +248,7 @@ export function PresentationSpeechOverlay({
           animate={{ opacity: 1, x: 0, y: 0 }}
           exit={{ opacity: 0, y: 8 }}
           transition={{ duration: 0.22, ease: [0.21, 1, 0.36, 1] }}
-          className="max-w-[min(420px,calc(100vw-3rem))]"
+          className={PRESENTATION_BUBBLE_WIDTH}
         >
           <PresentationBubbleCard bubble={bubble} />
         </motion.div>
