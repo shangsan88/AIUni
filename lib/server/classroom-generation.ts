@@ -26,10 +26,7 @@ import {
   replaceMediaPlaceholders,
   generateTTSForClassroom,
 } from '@/lib/server/classroom-media-generation';
-import {
-  buildLanguageInstruction,
-  normalizeGenerationLanguage,
-} from '@/lib/generation/language';
+import { buildLanguageInstruction, normalizeGenerationLanguage } from '@/lib/generation/language';
 import type { UserRequirements } from '@/lib/types/generation';
 import type { Scene, Stage } from '@/lib/types/stage';
 
@@ -197,7 +194,10 @@ export async function generateClassroom(
         model: languageModel,
         messages: [
           { role: 'system', content: `${languageInstruction}\n\n${systemPrompt}` },
-          { role: 'user', content: `${userPrompt}\n\nLanguage enforcement: ${languageInstruction}` },
+          {
+            role: 'user',
+            content: `${userPrompt}\n\nLanguage enforcement: ${languageInstruction}`,
+          },
         ],
         maxOutputTokens: modelInfo?.outputWindow,
       },

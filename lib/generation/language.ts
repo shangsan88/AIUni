@@ -50,15 +50,15 @@ const SPECS: Record<SupportedGenerationLanguage, GenerationLanguageSpec> = {
     autoGenerateElementsText: '(generate automatically from the key points)',
     slideFocusTitle: 'Focus on the key point',
     slideSpeechTitle: 'Scene explanation',
-    slideSpeechFallback: 'Let\'s focus on the key ideas on this page first.',
+    slideSpeechFallback: "Let's focus on the key ideas on this page first.",
     quizGuideTitle: 'Quiz guidance',
-    quizGuideText: 'Let\'s do a short quiz now to check what we have learned.',
+    quizGuideText: "Let's do a short quiz now to check what we have learned.",
     interactiveGuideTitle: 'Interactive guidance',
     interactiveGuideText:
-      'Now let\'s explore this concept through an interactive visualization. Try the controls on the page and observe what changes.',
+      "Now let's explore this concept through an interactive visualization. Try the controls on the page and observe what changes.",
     pblIntroTitle: 'PBL project introduction',
     pblIntroText:
-      'Now let\'s begin a project-based learning activity. Choose your role, review the task board, and start collaborating on the project.',
+      "Now let's begin a project-based learning activity. Choose your role, review the task board, and start collaborating on the project.",
   },
   'ru-RU': {
     code: 'ru-RU',
@@ -105,6 +105,8 @@ export function buildLanguageInstruction(language?: string): string {
     spec.code === 'ru-RU'
       ? 'English is allowed only for code, SQL keywords, API field names, or other technical syntax that must remain unchanged.'
       : 'Keep technical syntax unchanged only when necessary.',
-    spec.code === 'ru-RU' ? 'Never output Chinese.' : 'Do not switch to another language unless the user explicitly asks for it.',
+    spec.code === 'ru-RU'
+      ? 'Never output Chinese.'
+      : 'Do not switch to another language unless the user explicitly asks for it.',
   ].join(' ');
 }
